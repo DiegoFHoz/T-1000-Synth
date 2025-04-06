@@ -1,0 +1,27 @@
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+.Spotlight-V100
+.Trashes
+
+# Archivos de editores/IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Dependencias y directorios de node
+node_modules/
+npm-debug.log
+
+# Archivos de construcción y compilación
+build/
+dist/
+*.min.js
+
+# Archivos de entorno
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local 

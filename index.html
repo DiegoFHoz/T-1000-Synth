@@ -1,0 +1,2895 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sintetizador Digital Retrofuturista</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@300;400;500;700&family=VT323&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <!-- Volver a incluir Tone.js pero desde un CDN diferente -->
+    <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'VT323', monospace;
+        }
+        
+        :root {
+            --neon-pink: #ff00ff;
+            --neon-blue: #00ffff;
+            --neon-purple: #9d00ff;
+            --dark-bg: #120458;
+            --grid-color: rgba(0, 255, 255, 0.1);
+            --ui-bg: rgba(18, 4, 88, 0.75);
+            --ui-border: 2px solid var(--neon-blue);
+            --ui-glow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        
+        body {
+            background-color: var(--dark-bg);
+            color: #e6e6e6;
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 20px 20px;
+            background-position: center center;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            perspective: 1000px;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 0%, rgba(18, 4, 88, 0.8) 100%);
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1920px;
+            height: 100vh;
+            margin: 0 auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            aspect-ratio: 16/9;
+        }
+        
+        /* Estilo para el título con imágenes */
+        .title-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 25px; /* Aumentar margen inferior */
+        }
+        
+        .title-image {
+            height: 4.5rem; /* Aumentado de 3.5rem */
+            margin: 0 15px;
+            transition: transform 0.3s ease;
+        }
+        
+        .title-image:hover {
+            transform: scale(1.1);
+        }
+        
+        h1, h2, h3 {
+            font-family: 'Orbitron', sans-serif;
+            text-align: center;
+            color: var(--neon-blue);
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-weight: 400; /* Peso de fuente más ligero */
+        }
+        
+        h1 {
+            font-size: 3.5rem;
+            text-transform: uppercase;
+            text-shadow: 
+                0 0 5px var(--neon-blue),
+                0 0 15px var(--neon-blue),
+                0 0 30px var(--neon-blue);
+            margin: 0;
+            letter-spacing: 4px;
+            font-weight: 500; /* Peso de fuente medio para el título principal */
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: auto 1fr auto;
+            gap: 15px;
+            flex: 1;
+            height: calc(100vh - 100px);
+        }
+        
+        /* Panel superior de control */
+        .control-panel {
+            grid-column: 1 / 4;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+        
+        /* Paneles diversos */
+        .panel {
+            background: linear-gradient(to bottom, #1a1a40, #12123a);
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+            animation: scanline 2s linear infinite;
+        }
+        
+        @keyframes scanline {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .panel-title {
+            font-size: 1.3rem;
+            position: relative;
+            display: block;
+            width: 100%;
+            text-align: center;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            color: var(--neon-pink);
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 300; /* Peso de fuente más ligero para los títulos de módulos */
+        }
+        
+        .panel-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--neon-pink), transparent);
+            box-shadow: 0 0 5px var(--neon-pink);
+        }
+        
+        /* Panel de osciladores con modulación */
+        .oscillator-panel {
+            grid-column: 1 / 2;
+        }
+        
+        .oscillator-controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px; /* Aumentar espacio entre botones y faders */
+        }
+        
+        .osc-button {
+            background: var(--dark-bg);
+            color: #ccc;
+            border: 1px solid var(--neon-blue);
+            border-radius: 4px;
+            padding: 8px 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Orbitron', sans-serif;
+            position: relative;
+            overflow: hidden;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 70px;
+        }
+        
+        .osc-button::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(255, 255, 255, 0.1), transparent);
+            pointer-events: none;
+        }
+        
+        .osc-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 10px var(--neon-pink);
+        }
+        
+        .osc-button.active {
+            background: var(--neon-blue);
+            color: var(--dark-bg);
+            box-shadow: 0 0 15px var(--neon-blue);
+        }
+        
+        .osc-button.active .wave-icon {
+            stroke: var(--dark-bg);
+            stroke-width: 2.5;
+        }
+        
+        .wave-icon {
+            width: 50px;
+            height: 20px;
+            display: block;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: all 0.3s ease;
+        }
+        
+        .osc-button:hover .wave-icon {
+            stroke: var(--neon-pink);
+            filter: drop-shadow(0 0 2px var(--neon-pink));
+        }
+        
+        .osc-button.active:hover .wave-icon {
+            stroke: var(--dark-bg);
+            filter: none;
+        }
+        
+        /* ADSR Panel */
+        .adsr-panel {
+            grid-column: 2 / 3;
+        }
+        
+        /* Arpegiador Panel */
+        .arpeggiator-panel {
+            grid-column: 3 / 4;
+        }
+        
+        /* Controles para sliders */
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        /* Modulación de osciladores y controles comunes */
+        .control-item {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        
+        /* Reducir tamaño de textos en los paneles (etiquetas, valores, botones) */
+        .control-item label {
+            margin-bottom: 5px;
+            font-size: 0.7rem; /* Reducido de 0.9rem */
+            color: var(--neon-pink);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 300;
+        }
+        
+        /* Estilo común para todos los sliders */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            outline: none;
+            border: 1px solid var(--neon-blue);
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.7), 0 0 8px var(--neon-blue);
+            margin-bottom: 8px;
+            position: relative;
+            overflow: visible;
+        }
+        
+        input[type="range"]::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                rgba(0, 255, 255, 0.1) 0%, 
+                rgba(157, 0, 255, 0.1) 50%, 
+                rgba(255, 0, 255, 0.1) 100%);
+            border-radius: inherit;
+            pointer-events: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 3px;
+            background: var(--neon-blue);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 15px var(--neon-blue);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 22px;
+            height: 22px;
+            border-radius: 3px;
+            background: var(--neon-blue);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 15px var(--neon-blue);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+        }
+        
+        input[type="range"]::-ms-thumb {
+            width: 22px;
+            height: 22px;
+            border-radius: 3px;
+            background: var(--neon-blue);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 15px var(--neon-blue);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+        }
+        
+        input[type="range"]:hover::-webkit-slider-thumb,
+        input[type="range"]:active::-webkit-slider-thumb {
+            background: var(--neon-pink);
+            box-shadow: 0 0 20px var(--neon-pink);
+            transform: scale(1.2);
+        }
+        
+        input[type="range"]:hover::-moz-range-thumb,
+        input[type="range"]:active::-moz-range-thumb {
+            background: var(--neon-pink);
+            box-shadow: 0 0 20px var(--neon-pink);
+            transform: scale(1.2);
+        }
+        
+        input[type="range"]:hover::-ms-thumb,
+        input[type="range"]:active::-ms-thumb {
+            background: var(--neon-pink);
+            box-shadow: 0 0 20px var(--neon-pink);
+            transform: scale(1.2);
+        }
+        
+        .control-value {
+            text-align: center;
+            font-size: 0.75rem; /* Reducido de 1rem */
+            color: #fff;
+            font-family: 'VT323', monospace;
+            text-shadow: 0 0 5px var(--neon-blue);
+        }
+        
+        /* Piano Keyboard */
+        .piano-container {
+            grid-column: 1 / 4;
+            position: relative;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 10px;
+            height: 180px; /* Aumentado de auto */
+        }
+        
+        /* Pitch Bend */
+        .pitch-bend-container {
+            width: 60px;
+            height: 120px;
+            margin-right: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .pitch-bend-label {
+            color: var(--neon-pink);
+            font-size: 0.7rem; /* Reducido de 0.9rem */
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 300;
+        }
+        
+        .pitch-bend-slider {
+            width: 40px;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 20px;
+            border: 1px solid var(--neon-blue);
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.7), 0 0 10px var(--neon-blue);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .pitch-bend-slider::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(0deg, 
+                rgba(0, 255, 255, 0.1) 0%, 
+                rgba(157, 0, 255, 0.1) 50%, 
+                rgba(255, 0, 255, 0.1) 100%);
+            pointer-events: none;
+        }
+        
+        .pitch-bend-handle {
+            width: 50px;
+            height: 20px;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+            border-radius: 3px;
+            position: absolute;
+            left: -5px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--neon-blue);
+            transition: box-shadow 0.2s;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+        }
+        
+        .pitch-bend-handle:hover {
+            box-shadow: 0 0 15px var(--neon-pink);
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-pink));
+        }
+        
+        .pitch-bend-value {
+            color: #fff;
+            margin-top: 5px;
+            font-size: 0.65rem; /* Reducido de 0.8rem */
+            text-shadow: 0 0 5px var(--neon-blue);
+        }
+        
+        /* Controles de octava */
+        .octave-controls {
+            width: 60px;
+            height: 120px;
+            margin-left: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .octave-button {
+            width: 35px;
+            height: 35px;
+            background: var(--dark-bg);
+            color: var(--neon-pink);
+            border: 1px solid var(--neon-pink);
+            border-radius: 50%;
+            font-size: 1.3rem;
+            line-height: 1;
+            cursor: pointer;
+            margin: 5px 0;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.3);
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 400; /* Peso más ligero pero legible para los símbolos + y - */
+        }
+        
+        .octave-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px var(--neon-pink);
+            background: var(--neon-pink);
+            color: var(--dark-bg);
+        }
+        
+        .octave-display {
+            font-family: 'Orbitron', sans-serif;
+            color: #fff;
+            font-size: 0.85rem; /* Reducido de 1.1rem */
+            margin: 8px 0;
+            padding: 5px 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            border: 1px solid var(--neon-pink);
+            text-shadow: 0 0 5px var(--neon-blue);
+            text-align: center;
+            min-width: 50px;
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.3);
+            font-weight: 400;
+        }
+        
+        .octave-display::before {
+            content: 'Octave';
+            display: block;
+            font-size: 0.55rem; /* Reducido de 0.7rem */
+            color: var(--neon-pink);
+            margin-bottom: 3px;
+            text-transform: uppercase;
+            font-weight: 300;
+        }
+        
+        .keyboard-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1; /* Que ocupe el espacio disponible */
+        }
+        
+        .octaves-container {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            margin-top: 15px; /* Añadir espacio arriba */
+        }
+        
+        .octave-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 5px;
+        }
+        
+        .octave-container {
+            position: relative;
+            height: 130px; /* Aumentado de 120px */
+            margin: 0 2px; /* Reducido para juntar teclas */
+        }
+        
+        .piano-key {
+            position: absolute;
+            border-radius: 0 0 4px 4px;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .white-key {
+            background: linear-gradient(to bottom, #ffffff 0%, #f0f0f0 100%);
+            width: 38px; /* Aumentado de 35px */
+            height: 130px; /* Aumentado de 120px */
+            border: 1px solid #ccc;
+            z-index: 1;
+        }
+        
+        .black-key {
+            background: linear-gradient(to bottom, #333333 0%, #000000 100%);
+            width: 24px; /* Aumentado de 22px */
+            height: 80px; /* Aumentado de 70px */
+            z-index: 2;
+            color: white;
+        }
+        
+        .piano-key.active {
+            background: linear-gradient(to bottom, var(--neon-blue) 0%, var(--neon-purple) 100%) !important;
+            box-shadow: 0 0 15px var(--neon-blue) !important;
+        }
+        
+        .note-label {
+            position: absolute;
+            bottom: 5px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 0.55rem; /* Reducido de 0.7rem aproximado */
+            color: #333;
+        }
+        
+        .black-key .note-label {
+            color: #ddd;
+            bottom: 10px;
+        }
+        
+        /* Start Button */
+        #start-audio {
+            display: block;
+            margin: 20px auto;
+            padding: 12px 25px;
+            font-size: 1.2rem;
+            background: var(--dark-bg);
+            color: var(--neon-pink);
+            border: 2px solid var(--neon-pink);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 1px;
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.3);
+            text-transform: uppercase;
+        }
+        
+        #start-audio:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 0 25px rgba(255, 0, 255, 0.6);
+            background: var(--neon-pink);
+            color: var(--dark-bg);
+        }
+        
+        /* Selector de Arpegiador */
+        .arp-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        /* Botones del arpegiador más pequeños */
+        .arp-selector button {
+            background: var(--dark-bg);
+            color: #ccc;
+            border: 1px solid var(--neon-pink);
+            border-radius: 4px;
+            padding: 6px 4px; /* Reducido de 8px 5px */
+            font-size: 0.7rem; /* Reducido de 0.9rem */
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 300;
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 1px;
+        }
+        
+        .arp-selector button::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(255, 255, 255, 0.1), transparent);
+            pointer-events: none;
+        }
+        
+        .arp-selector button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 10px var(--neon-pink);
+        }
+        
+        .arp-selector button.active {
+            background: var(--neon-pink);
+            color: var(--dark-bg);
+            box-shadow: 0 0 10px var(--neon-pink);
+        }
+        
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto auto;
+            }
+            
+            .control-panel,
+            .oscillator-panel,
+            .adsr-panel,
+            .arpeggiator-panel,
+            .piano-container {
+                grid-column: 1;
+            }
+            
+            .control-panel {
+                grid-template-columns: 1fr;
+            }
+            
+            .white-key {
+                width: 30px;
+            }
+            
+            .black-key {
+                width: 20px;
+            }
+        }
+        
+        /* Estilos para franja media con visualizador y reverb */
+        .middle-panel {
+            grid-column: 1 / 4;
+            display: grid;
+            grid-template-columns: 3fr 2fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .visualizer-panel {
+            position: relative;
+            height: 150px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #waveform-display {
+            flex: 1;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 5px;
+            border: 1px solid var(--neon-blue);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 255, 255, 0.3);
+            margin: 5px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #waveform-display::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(0deg, 
+                rgba(0, 0, 0, 0.3) 0%, 
+                rgba(0, 0, 0, 0) 30%, 
+                rgba(0, 0, 0, 0) 70%, 
+                rgba(0, 0, 0, 0.3) 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .visualizer-panel::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 1px;
+            background: var(--neon-blue);
+            top: 50%;
+            left: 0;
+            opacity: 0.3;
+            z-index: 0;
+        }
+        
+        .reverb-panel {
+            height: 150px;
+        }
+
+        .reverb-output-meter {
+            margin-top: 10px;
+        }
+
+        /* Estilos para el selector de sintetizador */
+        .synth-selector-panel {
+            grid-column: span 2;
+            margin-bottom: 15px;
+        }
+        
+        .synth-selector {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .synth-type {
+            background: linear-gradient(to bottom, #4a4a4a, #3a3a3a);
+            color: #ddd;
+            border: 1px solid #666;
+            border-radius: 4px;
+            padding: 5px 0;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 35px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .synth-type:hover {
+            background: linear-gradient(to bottom, #5a5a5a, #4a4a4a);
+            transform: translateY(-2px);
+            box-shadow: 0 0 12px rgba(0, 255, 255, 0.7);
+            border-color: #00cccc;
+        }
+        
+        .synth-type.active {
+            background: linear-gradient(to bottom, #00cccc, #008888);
+            color: #fff;
+            border-color: #00ffff;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
+            transform: translateY(-3px) scale(1.05);
+        }
+        
+        .synth-type.active::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: #00ffff;
+            box-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+        }
+
+        /* Estilos generales para los paneles */
+        .panel {
+            background: linear-gradient(to bottom, #1a1a40, #12123a);
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Estilos para la hilera media con visualizador, selector de sintetizador y reverb */
+        .middle-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            width: 100%;
+            height: 160px; /* Reducido de 200px */
+            grid-column: 1 / 4; /* Asegurar que ocupe todo el ancho */
+        }
+        
+        .visualizer-panel {
+            flex: 3; /* Aumentado de 2 */
+            height: 100%;
+            padding: 10px;
+        }
+        
+        .synth-selector-panel {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .reverb-panel {
+            flex: 1;
+            height: 100%;
+        }
+        
+        .waveform-container {
+            width: 100%;
+            height: calc(100% - 40px);
+            margin-top: 10px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        #waveform-canvas {
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        
+        /* Ajustes para panel selector de sintetizador */
+        .synth-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* 2 columnas */
+            grid-template-rows: 1fr 1fr; /* 2 filas */
+            gap: 6px;
+            margin-top: 6px;
+            padding: 0 5px;
+            flex: 1;
+            height: calc(100% - 50px); /* Ajustar espacio para el título */
+        }
+        
+        .synth-type {
+            background: linear-gradient(to bottom, #4a4a4a, #3a3a3a);
+            color: #ddd;
+            border: 1px solid #666;
+            border-radius: 4px;
+            padding: 5px 0;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            aspect-ratio: auto; /* Quitar aspect-ratio forzado */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            max-height: 40px; /* Limitar altura */
+            min-height: 30px; /* Altura mínima */
+        }
+        
+        .synth-type:hover {
+            background: linear-gradient(to bottom, #5a5a5a, #4a4a4a);
+            transform: scale(1.05);
+            box-shadow: 0 0 12px rgba(0, 255, 255, 0.7);
+            border-color: #00cccc;
+        }
+        
+        .synth-type.active {
+            background: linear-gradient(to bottom, #00cccc, #008888);
+            color: #fff;
+            border-color: #00ffff;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
+            transform: scale(1.05);
+        }
+        
+        /* Ajustes para acomodar panels en vista 16:9 */
+        @media (min-aspect-ratio: 16/9) {
+            .container {
+                max-width: 1300px;
+                margin: 0 auto;
+            }
+            
+            .panel-grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 15px;
+            }
+            
+            .middle-row {
+                height: 220px;
+            }
+        }
+        
+        @media (max-aspect-ratio: 16/9) {
+            .container {
+                padding: 0 15px;
+            }
+            
+            .middle-row {
+                height: 180px;
+            }
+        }
+
+        .delay-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+            padding: 0 5px;
+            flex: 1;
+            height: calc(100% - 50px); /* Ajustar espacio para el título */
+        }
+
+        .control-item input[type="range"]::-moz-range-thumb {
+            width: 22px;
+            height: 22px;
+            border-radius: 3px;
+            background: var(--neon-blue);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 15px var(--neon-blue);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+        }
+
+        .control-item input[type="range"]::-moz-range-thumb:hover,
+        .control-item input[type="range"]:active::-moz-range-thumb {
+            background: var(--neon-pink);
+            box-shadow: 0 0 20px var(--neon-pink);
+            transform: scale(1.2);
+        }
+
+        /* Estilos para MS Edge */
+        .control-item input[type="range"]::-ms-thumb {
+            width: 22px;
+            height: 22px;
+            border-radius: 3px;
+            background: var(--neon-blue);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 15px var(--neon-blue);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+        }
+
+        /* Estilo para las etiquetas de delay y reverb */
+        .delay-controls label, .reverb-panel label {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 300;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--neon-pink);
+            font-size: 0.7rem; /* Reducido de 0.9rem aproximado */
+        }
+
+        /* Valores en los controles de delay y reverb */
+        .delay-controls .control-value, .reverb-panel .control-value {
+            font-size: 0.75rem; /* Reducido */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title-container">
+            <img src="terminator.png" alt="Terminator" class="title-image">
+            <h1>T-1000</h1>
+            <img src="terminator.png" alt="Terminator" class="title-image">
+        </div>
+        
+        <div class="main-content" id="main-content">
+            <div class="control-panel">
+                <!-- Panel de osciladores con modulación -->
+                <div class="oscillator-panel panel">
+                    <h2 class="panel-title">LFO</h2>
+                    <div class="oscillator-controls">
+                        <button class="osc-button active" data-type="sine">
+                            <svg class="wave-icon" viewBox="0 0 60 20" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M5,10 C8,3 12,3 15,10 C18,17 22,17 25,10 C28,3 32,3 35,10 C38,17 42,17 45,10 C48,3 52,3 55,10" stroke="currentColor" fill="none" stroke-width="2"/>
+                            </svg>
+                        </button>
+                        <button class="osc-button" data-type="square">
+                            <svg class="wave-icon" viewBox="0 0 60 20" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M5,10 L5,3 L30,3 L30,17 L55,17 L55,10" stroke="currentColor" fill="none" stroke-width="2"/>
+                            </svg>
+                        </button>
+                        <button class="osc-button" data-type="sawtooth">
+                            <svg class="wave-icon" viewBox="0 0 60 20" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M5,17 L30,3 L30,17 L55,3" stroke="currentColor" fill="none" stroke-width="2"/>
+                            </svg>
+                        </button>
+                        <button class="osc-button" data-type="triangle">
+                            <svg class="wave-icon" viewBox="0 0 60 20" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M5,10 L15,3 L30,17 L45,3 L55,10" stroke="currentColor" fill="none" stroke-width="2"/>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="control-grid">
+                        <div class="control-item">
+                            <label for="detune">Detune</label>
+                            <input type="range" id="detune" min="-100" max="100" value="0" step="1">
+                            <div id="detune-value" class="control-value">0 cents</div>
+                        </div>
+                        
+                        <div class="control-item">
+                            <label for="harmonicity">Harmonicity</label>
+                            <input type="range" id="harmonicity" min="0.1" max="10" value="1" step="0.1">
+                            <div id="harmonicity-value" class="control-value">1.0</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Panel ADSR -->
+                <div class="adsr-panel panel">
+                    <h2 class="panel-title">ADSR</h2>
+                    <div class="control-grid">
+                        <div class="control-item">
+                            <label for="attack">Attack</label>
+                            <input type="range" id="attack" min="0.01" max="2" step="0.01" value="0.05">
+                            <div id="attack-value" class="control-value">0.05s</div>
+                        </div>
+                        <div class="control-item">
+                            <label for="decay">Decay</label>
+                            <input type="range" id="decay" min="0.01" max="2" step="0.01" value="0.2">
+                            <div id="decay-value" class="control-value">0.2s</div>
+                        </div>
+                        <div class="control-item">
+                            <label for="sustain">Sustain</label>
+                            <input type="range" id="sustain" min="0" max="1" step="0.01" value="0.4">
+                            <div id="sustain-value" class="control-value">0.4</div>
+                        </div>
+                        <div class="control-item">
+                            <label for="release">Release</label>
+                            <input type="range" id="release" min="0.01" max="5" step="0.01" value="1">
+                            <div id="release-value" class="control-value">1.0s</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Panel Arpegiador -->
+                <div class="arpeggiator-panel panel">
+                    <h2 class="panel-title">Arpeggiator</h2>
+                    <div class="arp-selector">
+                        <button class="arp-mode" data-mode="off">Off</button>
+                        <button class="arp-mode" data-mode="up">Up</button>
+                        <button class="arp-mode" data-mode="down">Down</button>
+                        <button class="arp-mode" data-mode="updown">Up/Down</button>
+                        <button class="arp-mode" data-mode="random">Random</button>
+                    </div>
+                    
+                    <div class="control-grid">
+                        <div class="control-item">
+                            <label for="arp-rate">Rate</label>
+                            <input type="range" id="arp-rate" min="1" max="16" value="8" step="1">
+                            <div id="arp-rate-value" class="control-value">8 Hz</div>
+                        </div>
+                        <div class="control-item">
+                            <label for="arp-octaves">Octaves</label>
+                            <input type="range" id="arp-octaves" min="1" max="4" value="1" step="1">
+                            <div id="arp-octaves-value" class="control-value">1</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Franja Media con Visualizador, Motor de Síntesis y Reverb -->
+            <div class="middle-row">
+                <!-- Visualizador de Forma de Onda -->
+                <div class="visualizer-panel panel">
+                    <h2 class="panel-title">Wave</h2>
+                    <div class="waveform-container">
+                        <canvas id="waveform-canvas"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Panel Selector de Sintetizador -->
+                <div class="synth-selector-panel panel">
+                    <h2 class="panel-title">Delay</h2>
+                    <div class="delay-controls">
+                        <div class="control-item">
+                            <label for="delay-time">Tiempo</label>
+                            <input type="range" id="delay-time" min="0.05" max="1" value="0.3" step="0.01">
+                            <div id="delay-time-value" class="control-value">0.3s</div>
+                        </div>
+                        <div class="control-item">
+                            <label for="delay-feedback">Feedback</label>
+                            <input type="range" id="delay-feedback" min="0" max="0.9" value="0.5" step="0.01">
+                            <div id="delay-feedback-value" class="control-value">0.5</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Panel de Reverb -->
+                <div class="reverb-panel panel">
+                    <h2 class="panel-title">Reverb</h2>
+                    <div class="control-item">
+                        <label for="reverb-mix">Mix</label>
+                        <input type="range" id="reverb-mix" min="0" max="1" value="0.3" step="0.01">
+                        <div id="reverb-mix-value" class="control-value">0.3</div>
+                    </div>
+                    <div class="control-item">
+                        <label for="reverb-decay">Decay</label>
+                        <input type="range" id="reverb-decay" min="0.1" max="10" value="2.5" step="0.1">
+                        <div id="reverb-decay-value" class="control-value">2.5s</div>
+                    </div>
+                    <div class="reverb-output-meter" id="reverb-output-meter"></div>
+                </div>
+            </div>
+            
+            <!-- Piano Keyboard -->
+            <div id="keyboard-container" class="piano-container panel">
+                <div class="pitch-bend-container">
+                    <label class="pitch-bend-label">Pitch</label>
+                    <div class="pitch-bend-slider">
+                        <div id="pitch-bend-handle" class="pitch-bend-handle"></div>
+                    </div>
+                    <div id="pitch-bend-value" class="pitch-bend-value">0%</div>
+                </div>
+                
+                <div class="keyboard-wrapper">
+                    <div class="octaves-container">
+                        <div class="octave-wrapper">
+                            <div class="octave-container" id="octave-4"></div>
+                        </div>
+                        
+                        <div class="octave-wrapper">
+                            <div class="octave-container" id="octave-5"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="octave-controls">
+                    <button id="octave-down" class="octave-button" title="Bajar octava (Flecha abajo)">-</button>
+                    <div id="current-octave" class="octave-display" title="Octava actual del teclado">4-5</div>
+                    <button id="octave-up" class="octave-button" title="Subir octava (Flecha arriba)">+</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Estado global
+        let synth = null;
+        let audioStarted = false;
+        let activeNotes = {};
+        let activeKeys = {}; // Para rastrear teclas físicas presionadas
+        let currentOscType = 'sine';
+        let currentHarmonicity = 1.0;
+        
+        // Configuración de octavas
+        let currentOctave = 4; // Octava base (la inferior)
+        const MIN_OCTAVE = 1;
+        const MAX_OCTAVE = 7;
+        
+        // Componentes de audio
+        let reverb = null;
+        let analyzer = null;
+        let visualizerContext = null;
+        let visualizerCanvas = null;
+        let visualizerAnimationId = null;
+        let delay = null;
+        
+        // Valores ADSR
+        const adsrValues = {
+            attack: 0.05,
+            decay: 0.2,
+            sustain: 0.4,
+            release: 1
+        };
+
+        // Configuración del arpegiador
+        let arpeggiator = {
+            active: false,
+            mode: 'up',
+            rate: 8,
+            octaves: 1,
+            currentNotes: [],
+            currentStep: 0,
+            intervalId: null,
+            lastRandomNote: null // Para evitar repeticiones en modo random
+        };
+        
+        // Mapeo de teclas a notas
+        const keyboardMap = {
+            // Octava 4
+            'z': 'C4',
+            's': 'C#4',
+            'x': 'D4',
+            'd': 'D#4',
+            'c': 'E4',
+            'v': 'F4',
+            'g': 'F#4',
+            'b': 'G4',
+            'h': 'G#4',
+            'n': 'A4',
+            'j': 'A#4',
+            'm': 'B4',
+            
+            // Octava 5
+            'q': 'C5',
+            '2': 'C#5',
+            'w': 'D5',
+            '3': 'D#5',
+            'e': 'E5',
+            'r': 'F5',
+            '5': 'F#5',
+            't': 'G5',
+            '6': 'G#5',
+            'y': 'A5',
+            '7': 'A#5',
+            'u': 'B5'
+        };
+        
+        // Inicializar la aplicación cuando se carga el DOM
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("DOM cargado, configurando interfaz...");
+            
+            // Crear teclados
+            createKeyboard(document.getElementById('octave-4'), 4);
+            createKeyboard(document.getElementById('octave-5'), 5);
+            
+            // Configurar botones de tipo de oscilador
+            document.querySelectorAll('.oscillator-controls button').forEach(button => {
+                button.addEventListener('click', function() {
+                    // Cambiar tipo de oscilador
+                    currentOscType = this.getAttribute('data-type');
+                    console.log("Tipo de oscilador cambiado a:", currentOscType);
+                    
+                    // Actualizar el sintetizador si ya está creado
+                    if (synth) {
+                        updateSynthSettings();
+                    }
+                    
+                    // Actualizar UI
+                    document.querySelectorAll('.oscillator-controls button').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                });
+            });
+            
+            // Configurar botones de tipo de sintetizador
+            document.querySelectorAll('.synth-type').forEach(button => {
+                button.addEventListener('click', function() {
+                    const synthType = this.getAttribute('data-type');
+                    console.log("Tipo de sintetizador cambiado a:", synthType);
+                    
+                    // Actualizar UI
+                    document.querySelectorAll('.synth-type').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                    
+                    // Cambiar el sintetizador si ya está creado
+                    if (synth && audioStarted) {
+                        changeSynthType(synthType);
+                    } else {
+                        currentSynthType = synthType;
+                    }
+                });
+            });
+            
+            // Configurar controles ADSR
+            setupADSRControls();
+            
+            // Configurar controles de modulación
+            setupModulationControls();
+            
+            // Configurar eventos de teclado físico
+            setupKeyboardEvents();
+
+            // Configurar arpegiador
+            setupArpeggiator();
+            
+            // Configurar visualizador
+            setupVisualizer();
+            
+            // Configurar controles de reverb
+            setupReverbControls();
+            
+            // Configurar Pitch Bend
+            setupPitchBend();
+            
+            // Configurar controles de octava
+            setupOctaveControls();
+            
+            // Iniciar audio automáticamente
+            startAudio();
+        });
+        
+        // Inicializar el visualizador
+        function setupVisualizer() {
+            visualizerCanvas = document.getElementById('waveform-canvas');
+            if (!visualizerCanvas) {
+                console.error("No se encontró el canvas del visualizador");
+                return;
+            }
+            
+            visualizerContext = visualizerCanvas.getContext('2d');
+            
+            // Ajustar el tamaño del canvas al tamaño del contenedor
+            function resizeCanvas() {
+                visualizerCanvas.width = visualizerCanvas.clientWidth;
+                visualizerCanvas.height = visualizerCanvas.clientHeight;
+            }
+            
+            // Llamar al resize inicial y añadir listener para cuando cambie el tamaño
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            console.log("Visualizador configurado");
+        }
+        
+        // Animar el visualizador
+        function animateVisualizer() {
+            if (!analyzer || !visualizerContext || !visualizerCanvas) {
+                console.log("Visualizador no inicializado completamente");
+                return;
+            }
+            
+            try {
+                // Obtener datos del analizador
+                const bufferLength = analyzer.size;
+                const dataArray = analyzer.getValue();
+                
+                // Verificar si tenemos datos válidos
+                if (!dataArray || dataArray.length === 0) {
+                    console.log("No hay datos del analizador");
+                    visualizerAnimationId = requestAnimationFrame(animateVisualizer);
+                    return;
+                }
+                
+                // Limpiar canvas
+                visualizerContext.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
+                
+                // Estilo para la onda
+                visualizerContext.lineWidth = 3;
+                
+                // Color según tipo de oscilador con efecto de brillo
+                let gradientColor;
+                switch (currentOscType) {
+                    case 'sine':
+                        gradientColor = '#00ffff'; // Neon azul
+                        break;
+                    case 'square':
+                        gradientColor = '#ff00ff'; // Neon rosa
+                        break;
+                    case 'sawtooth':
+                        gradientColor = '#9d00ff'; // Neon púrpura
+                        break;
+                    case 'triangle':
+                        gradientColor = '#00ff00'; // Neon verde
+                        break;
+                    default:
+                        gradientColor = '#00ffff';
+                }
+                
+                // Crear un gradiente para la línea
+                const gradient = visualizerContext.createLinearGradient(0, 0, 0, visualizerCanvas.height);
+                gradient.addColorStop(0, gradientColor);
+                gradient.addColorStop(0.5, gradientColor);
+                gradient.addColorStop(1, 'rgba(0,0,0,0)');
+                
+                visualizerContext.strokeStyle = gradientColor;
+                visualizerContext.shadowBlur = 10;
+                visualizerContext.shadowColor = gradientColor;
+                
+                // Inicia el trazado
+                visualizerContext.beginPath();
+                
+                const sliceWidth = visualizerCanvas.width / bufferLength;
+                let x = 0;
+                
+                // Factor de amplificación para hacer la onda más visible
+                const amplificationFactor = Object.keys(activeNotes).length > 0 ? 2.5 : 1.5;
+                
+                for (let i = 0; i < bufferLength; i++) {
+                    // Los datos ya vienen en el rango -1 a 1
+                    const v = dataArray[i] * amplificationFactor;
+                    
+                    // Centrar en el medio del canvas
+                    const y = (visualizerCanvas.height / 2) + (v * visualizerCanvas.height / 2);
+                    
+                    if (i === 0) {
+                        visualizerContext.moveTo(x, y);
+                    } else {
+                        visualizerContext.lineTo(x, y);
+                    }
+                    
+                    x += sliceWidth;
+                }
+                
+                // Completar el trazado
+                visualizerContext.stroke();
+                
+                // Si hay notas activas, agregar un brillo adicional
+                if (Object.keys(activeNotes).length > 0) {
+                    visualizerContext.lineWidth = 1.5;
+                    visualizerContext.globalAlpha = 0.7;
+                    visualizerContext.stroke();
+                    
+                    visualizerContext.lineWidth = 0.5;
+                    visualizerContext.globalAlpha = 0.4;
+                    visualizerContext.stroke();
+                    
+                    visualizerContext.globalAlpha = 1;
+                }
+                
+            } catch (error) {
+                console.error("Error al animar el visualizador:", error);
+            }
+            
+            // Continuar la animación
+            visualizerAnimationId = requestAnimationFrame(animateVisualizer);
+        }
+        
+        // Configurar controles para el reverb
+        function setupReverbControls() {
+            // Control de Reverb Mix
+            const reverbMixSlider = document.getElementById('reverb-mix');
+            const reverbMixValue = document.getElementById('reverb-mix-value');
+            
+            if (reverbMixSlider && reverbMixValue) {
+                reverbMixSlider.addEventListener('input', function() {
+                    const value = parseFloat(this.value);
+                    reverbMixValue.textContent = value.toFixed(2);
+                    
+                    // Actualizar el reverb si ya está creado
+                    if (reverb) {
+                        reverb.wet.value = value;
+                    }
+                });
+            }
+            
+            // Control de Reverb Decay
+            const reverbDecaySlider = document.getElementById('reverb-decay');
+            const reverbDecayValue = document.getElementById('reverb-decay-value');
+            
+            if (reverbDecaySlider && reverbDecayValue) {
+                reverbDecaySlider.addEventListener('input', function() {
+                    const value = parseFloat(this.value);
+                    reverbDecayValue.textContent = value.toFixed(1) + 's';
+                    
+                    // Para actualizar el decay tenemos que recrear el reverb
+                    if (reverb) {
+                        updateReverbSettings(value);
+                    }
+                });
+            }
+        }
+        
+        // Actualizar configuración del reverb
+        function updateReverbSettings(decayTime) {
+            if (!reverb || !synth) return;
+            
+            try {
+                // Desconectar el reverb actual
+                reverb.disconnect();
+                
+                // Crear uno nuevo con el nuevo decay
+                reverb = new Tone.Reverb({
+                    decay: decayTime,
+                    preDelay: 0.01,
+                    wet: parseFloat(document.getElementById('reverb-mix').value)
+                }).toDestination();
+                
+                // Esperar a que se genere el impulso
+                reverb.generate().then(() => {
+                    // Reconectar usando las referencias globales
+                    if (window.delay) {
+                        window.delay.disconnect(); // Desconectar delay del viejo reverb
+                        window.delay.connect(reverb); // Conectar al nuevo reverb
+                    } else {
+                        // Si no hay delay, conectar el sintetizador directamente al reverb
+                        synth.disconnect();
+                        synth.connect(analyzer);
+                        synth.connect(reverb);
+                    }
+                    
+                    console.log("Reverb actualizado con decay:", decayTime);
+                });
+            } catch (error) {
+                console.error("Error al actualizar reverb:", error);
+            }
+        }
+        
+        // Configurar eventos de teclado físico
+        function setupKeyboardEvents() {
+            console.log("Configurando eventos de teclado físico...");
+            
+            // Manejar presionar tecla
+            window.addEventListener('keydown', function(event) {
+                // Evitar repetición si la tecla ya está presionada
+                if (event.repeat) return;
+                
+                const key = event.key.toLowerCase();
+                
+                // Controles de octava con teclas de flecha arriba/abajo
+                if (key === 'arrowup') {
+                    document.getElementById('octave-up').click();
+                    return;
+                } else if (key === 'arrowdown') {
+                    document.getElementById('octave-down').click();
+                    return;
+                }
+                
+                if (keyboardMap[key]) {
+                    console.log(`Tecla presionada: ${key} -> Nota: ${keyboardMap[key]}`);
+                    
+                    // Intentar iniciar el audio si no está iniciado
+                    if (!audioStarted) {
+                        console.log("Iniciando audio desde evento de teclado...");
+                        startAudio().then(() => {
+                            // Reproducir la nota después de iniciar el audio
+                            playNoteWithKeyHighlight(keyboardMap[key], key);
+                        }).catch(error => {
+                            console.error("Error al iniciar audio desde teclado:", error);
+                        });
+                    } else {
+                        // Reproducir la nota directamente
+                        playNoteWithKeyHighlight(keyboardMap[key], key);
+                    }
+                    
+                    // Prevenir comportamiento por defecto (como scroll)
+                    event.preventDefault();
+                }
+            });
+            
+            // Manejar soltar tecla
+            window.addEventListener('keyup', function(event) {
+                const key = event.key.toLowerCase();
+                
+                if (keyboardMap[key] && activeKeys[key]) {
+                    console.log(`Tecla liberada: ${key} -> Nota: ${keyboardMap[key]}`);
+                    stopNoteWithKeyHighlight(keyboardMap[key], key);
+                    
+                    // Prevenir comportamiento por defecto
+                    event.preventDefault();
+                }
+            });
+        }
+        
+        // Configurar los controles de modulación
+        function setupModulationControls() {
+            // Control de detune
+            const detuneSlider = document.getElementById('detune');
+            const detuneValue = document.getElementById('detune-value');
+            
+            detuneSlider.addEventListener('input', function() {
+                const value = parseInt(this.value);
+                detuneValue.textContent = value + ' cents';
+                
+                // Actualizar el sintetizador si ya está creado
+                if (synth) {
+                    updateDetune(value);
+                }
+            });
+            
+            // Control de harmonicity
+            const harmonicitySlider = document.getElementById('harmonicity');
+            const harmonicityValue = document.getElementById('harmonicity-value');
+            
+            harmonicitySlider.addEventListener('input', function() {
+                const value = parseFloat(this.value);
+                harmonicityValue.textContent = value.toFixed(1);
+                
+                // Actualizar el sintetizador si ya está creado
+                if (synth) {
+                    updateHarmonicity(value);
+                }
+            });
+        }
+        
+        // Actualizar detune del sintetizador
+        function updateDetune(cents) {
+            if (!synth) return;
+            
+            try {
+                synth.set({ detune: cents });
+                console.log("Detune actualizado a:", cents);
+                
+                // Si hay notas activas, reactivarlas con el nuevo detune
+                const activeNotesList = Object.keys(activeNotes);
+                if (activeNotesList.length > 0) {
+                    // Capturar la lista de notas activas
+                    const notesToReactivate = [...activeNotesList];
+                    
+                    // Liberar notas actuales
+                    synth.triggerRelease(notesToReactivate);
+                    
+                    // Volver a activarlas con el nuevo detune
+                    requestAnimationFrame(() => {
+                        synth.triggerAttack(notesToReactivate);
+                    });
+                }
+            } catch (error) {
+                console.error("Error al actualizar detune:", error);
+            }
+        }
+        
+        // Actualizar harmonicity
+        function updateHarmonicity(value) {
+            if (!synth) return;
+            
+            try {
+                // Actualizar el valor actual
+                currentHarmonicity = value;
+                
+                // Los FMSynth soportan harmonicity directamente
+                synth.set({ harmonicity: value });
+                
+                console.log("Harmonicity actualizado a:", value);
+                
+                // Si hay notas activas, reactivarlas para escuchar el cambio inmediatamente
+                const activeNotesList = Object.keys(activeNotes);
+                if (activeNotesList.length > 0) {
+                    // Capturar la lista de notas activas
+                    const notesToReactivate = [...activeNotesList];
+                    
+                    // Liberar notas actuales
+                    synth.triggerRelease(notesToReactivate);
+                    
+                    // Volver a activarlas con la nueva harmonicity
+                    requestAnimationFrame(() => {
+                        synth.triggerAttack(notesToReactivate);
+                    });
+                }
+            } catch (error) {
+                console.error("Error al actualizar harmonicity:", error);
+            }
+        }
+        
+        // Reproducir nota y resaltar la tecla correspondiente (optimizado)
+        function playNoteWithKeyHighlight(note, key) {
+            if (!audioStarted || !synth) {
+                console.warn("Sintetizador no inicializado");
+                return;
+            }
+            
+            // Prevenir reproducción si la tecla ya está activa
+            if (activeKeys[key]) return;
+            
+            try {
+                // Tocar nota con prioridad alta
+                synth.triggerAttack(note);
+                
+                // Registrar estado
+                activeKeys[key] = true;
+                activeNotes[note] = true;
+                
+                // Si el arpegiador está activo, actualizarlo con las nuevas notas
+                if (arpeggiator.active) {
+                    startArpeggiator();
+                }
+                
+                // Resaltar tecla visualmente (puede ser menos prioritario)
+                requestAnimationFrame(() => {
+                    const keyElement = document.querySelector(`.piano-key[data-note="${note}"]`);
+                    if (keyElement) {
+                        keyElement.classList.add('active');
+                    }
+                });
+            } catch (error) {
+                console.error(`Error al reproducir nota ${note}:`, error);
+            }
+        }
+        
+        // Detener nota y quitar resaltado (optimizado)
+        function stopNoteWithKeyHighlight(note, key) {
+            if (!audioStarted || !synth) return;
+            
+            try {
+                // Detener la nota inmediatamente
+                if (!arpeggiator.active) {
+                    synth.triggerRelease(note);
+                }
+                
+                // Limpiar estado
+                delete activeKeys[key];
+                delete activeNotes[note];
+                
+                // Si el arpegiador está activo, actualizarlo con las notas restantes
+                if (arpeggiator.active) {
+                    if (Object.keys(activeNotes).length === 0) {
+                        stopArpeggiator();
+                    } else {
+                        startArpeggiator();
+                    }
+                }
+                
+                // Actualizar visual (menos prioritario)
+                requestAnimationFrame(() => {
+                    const keyElement = document.querySelector(`.piano-key[data-note="${note}"]`);
+                    if (keyElement) {
+                        keyElement.classList.remove('active');
+                    }
+                });
+            } catch (error) {
+                console.error(`Error al detener nota ${note}:`, error);
+                delete activeKeys[key];
+                delete activeNotes[note];
+            }
+        }
+        
+        // Configurar los controles ADSR
+        function setupADSRControls() {
+            const controls = ['attack', 'decay', 'sustain', 'release'];
+            
+            controls.forEach(control => {
+                const slider = document.getElementById(control);
+                if (!slider) {
+                    console.error(`Control slider no encontrado: ${control}`);
+                    return;
+                }
+                
+                // Establecer el valor inicial
+                adsrValues[control] = parseFloat(slider.value);
+                updateValueDisplay(control, adsrValues[control]);
+                
+                // Añadir evento para actualizar cuando cambie
+                slider.addEventListener('input', function() {
+                    const value = parseFloat(this.value);
+                    adsrValues[control] = value;
+                    updateValueDisplay(control, value);
+                    
+                    // Actualizar el sintetizador si ya está creado
+                    if (synth) {
+                        updateSynthSettings();
+                    }
+                });
+            });
+            
+            console.log("Controles ADSR configurados con valores:", adsrValues);
+        }
+        
+        // Actualizar la visualización del valor
+        function updateValueDisplay(controlName, value) {
+            const display = document.getElementById(`${controlName}-value`);
+            if (display) {
+                if (controlName === 'sustain') {
+                    display.textContent = value.toFixed(2);
+                } else {
+                    display.textContent = value.toFixed(2) + 's';
+                }
+            }
+        }
+        
+        // Iniciar el audio con Tone.js
+        function startAudio() {
+            if (audioStarted) return Promise.resolve();
+            
+            console.log("Iniciando audio automáticamente...");
+            
+            return Tone.start().then(() => {
+                console.log("Contexto de audio iniciado:", Tone.context.state);
+                
+                // Asegurarse de que el contexto de audio esté corriendo
+                if (Tone.context.state !== "running") {
+                    console.log("Intentando reanudar contexto...");
+                    return Tone.context.resume();
+                }
+            }).then(() => {
+                // Crear analizador para el visualizador con mejor configuración
+                analyzer = new Tone.Analyser({
+                    type: "waveform",
+                    size: 1024,
+                    smoothing: 0.4
+                });
+                
+                // Crear delay (con valores de los sliders si están disponibles)
+                let delayTime = 0.3;
+                let delayFeedback = 0.5;
+                let delayWet = 0.5;
+                
+                const delayTimeSlider = document.getElementById('delay-time');
+                if (delayTimeSlider) {
+                    delayTime = parseFloat(delayTimeSlider.value);
+                }
+                
+                const delayFeedbackSlider = document.getElementById('delay-feedback');
+                if (delayFeedbackSlider) {
+                    delayFeedback = parseFloat(delayFeedbackSlider.value);
+                }
+                
+                const delayWetSlider = document.getElementById('delay-wet');
+                if (delayWetSlider) {
+                    delayWet = parseFloat(delayWetSlider.value);
+                }
+                
+                // Crear nuevo delay
+                window.delay = new Tone.FeedbackDelay({
+                    delayTime: delayTime,
+                    feedback: delayFeedback,
+                    wet: delayWet,
+                    maxDelay: 1
+                });
+                
+                console.log("Delay creado con valores:", {
+                    delayTime: delayTime,
+                    feedback: delayFeedback,
+                    wet: delayWet
+                });
+                
+                // Crear reverb con valores iniciales
+                reverb = new Tone.Reverb({
+                    decay: parseFloat(document.getElementById('reverb-decay').value) || 2,
+                    preDelay: 0.01,
+                    wet: parseFloat(document.getElementById('reverb-mix').value) || 0.3
+                }).toDestination();
+                
+                // Esperar a que se cargue el reverb
+                return reverb.generate();
+            }).then(() => {
+                // Crear el sintetizador FMSynth con soporte para harmonicity
+                synth = new Tone.PolySynth(Tone.FMSynth, {
+                    oscillator: {
+                        type: currentOscType
+                    },
+                    envelope: {
+                        attack: adsrValues.attack,
+                        decay: adsrValues.decay,
+                        sustain: adsrValues.sustain,
+                        release: adsrValues.release
+                    },
+                    modulationIndex: 5, // Índice de modulación predeterminado
+                    harmonicity: currentHarmonicity,
+                    volume: -6 // Reducir volumen para evitar distorsión
+                });
+                
+                // Configurar cadena de señal: synth -> analyzer -> delay -> reverb
+                synth.connect(analyzer);
+                synth.connect(window.delay);
+                window.delay.connect(reverb);
+                
+                audioStarted = true;
+                console.log("Audio iniciado correctamente con valores ADSR:", adsrValues);
+                
+                // Configurar controles de delay
+                setupDelayControls();
+                
+                // Iniciar el visualizador
+                console.log("Iniciando visualizador...");
+                animateVisualizer();
+                
+                // Generar un tono de prueba para activar el visualizador y comprobar que funciona
+                playTestTone();
+                
+                return Promise.resolve();
+            }).catch(error => {
+                console.error("Error al iniciar el audio:", error);
+                return Promise.reject(error);
+            });
+        }
+        
+        // Configurar controles de delay
+        function setupDelayControls() {
+            console.log("Configurando controles de delay...");
+            
+            if (!window.delay) {
+                console.error("No se ha inicializado el delay");
+                return;
+            }
+            
+            // Control de Delay Time
+            const delayTimeSlider = document.getElementById('delay-time');
+            const delayTimeValue = document.getElementById('delay-time-value');
+            
+            if (delayTimeSlider && delayTimeValue) {
+                // Establecer valor inicial
+                const initialTime = window.delay.delayTime.value;
+                delayTimeSlider.value = initialTime;
+                delayTimeValue.textContent = `${initialTime.toFixed(2)}s`;
+                
+                // Configurar evento
+                delayTimeSlider.addEventListener('input', function() {
+                    try {
+                        const value = parseFloat(this.value);
+                        delayTimeValue.textContent = `${value.toFixed(2)}s`;
+                        
+                        // Actualizar el delay
+                        window.delay.delayTime.value = value;
+                        console.log(`Tiempo de delay actualizado a: ${value}s`);
+                        
+                        // Reproducir un tono de prueba para demostrar el cambio
+                        if (synth && !Object.keys(activeNotes).length) {
+                            synth.triggerAttackRelease("C4", "8n");
+                        }
+                    } catch (error) {
+                        console.error("Error al actualizar tiempo de delay:", error);
+                    }
+                });
+            }
+            
+            // Control de Delay Feedback
+            const delayFeedbackSlider = document.getElementById('delay-feedback');
+            const delayFeedbackValue = document.getElementById('delay-feedback-value');
+            
+            if (delayFeedbackSlider && delayFeedbackValue) {
+                // Establecer valor inicial
+                const initialFeedback = window.delay.feedback.value;
+                delayFeedbackSlider.value = initialFeedback;
+                delayFeedbackValue.textContent = initialFeedback.toFixed(2);
+                
+                // Configurar evento
+                delayFeedbackSlider.addEventListener('input', function() {
+                    try {
+                        const value = parseFloat(this.value);
+                        delayFeedbackValue.textContent = value.toFixed(2);
+                        
+                        // Actualizar el feedback del delay
+                        window.delay.feedback.value = value;
+                        console.log(`Feedback de delay actualizado a: ${value}`);
+                        
+                        // Reproducir un tono de prueba para demostrar el cambio
+                        if (synth && !Object.keys(activeNotes).length) {
+                            synth.triggerAttackRelease("C4", "8n");
+                        }
+                    } catch (error) {
+                        console.error("Error al actualizar feedback de delay:", error);
+                    }
+                });
+            }
+            
+            // Control del nivel (wet) de delay
+            const delayWetSlider = document.getElementById('delay-wet');
+            const delayWetValue = document.getElementById('delay-wet-value');
+            
+            if (delayWetSlider && delayWetValue) {
+                // Establecer valor inicial
+                const initialWet = window.delay.wet.value;
+                delayWetSlider.value = initialWet;
+                delayWetValue.textContent = initialWet.toFixed(2);
+                
+                // Configurar evento
+                delayWetSlider.addEventListener('input', function() {
+                    try {
+                        const value = parseFloat(this.value);
+                        delayWetValue.textContent = value.toFixed(2);
+                        
+                        // Actualizar wet del delay
+                        window.delay.wet.value = value;
+                        console.log(`Nivel de delay actualizado a: ${value}`);
+                        
+                        // Reproducir un tono de prueba para demostrar el cambio
+                        if (synth && !Object.keys(activeNotes).length) {
+                            synth.triggerAttackRelease("C4", "8n");
+                        }
+                    } catch (error) {
+                        console.error("Error al actualizar wet de delay:", error);
+                    }
+                });
+            }
+            
+            console.log("Controles de delay configurados correctamente");
+        }
+        
+        // Función para reproducir un tono de prueba y activar el visualizador
+        function playTestTone() {
+            if (!synth) return;
+            
+            console.log("Reproduciendo tono de prueba para activar visualizador...");
+            
+            // Guardar el volumen actual
+            const currentVolume = synth.volume.value;
+            
+            // Establecer volumen moderado para que se vea la onda
+            synth.volume.value = -12;
+            
+            // Tocar una nota C4 brevemente
+            synth.triggerAttackRelease("C4", 0.3);
+            
+            // Restaurar el volumen después de un momento
+            setTimeout(() => {
+                synth.volume.value = currentVolume;
+            }, 350);
+        }
+        
+        // Actualizar la configuración del sintetizador
+        function updateSynthSettings() {
+            if (!synth) {
+                console.warn("No hay sintetizador para actualizar");
+                return;
+            }
+            
+            try {
+                // Crear un nuevo sintetizador con los ajustes actualizados
+                console.log("Actualizando sintetizador con ADSR:", adsrValues);
+                
+                // Usar FMSynth en lugar de Synth para soportar harmonicity
+                const newSynth = new Tone.PolySynth(Tone.FMSynth, {
+                    oscillator: {
+                        type: currentOscType
+                    },
+                    envelope: {
+                        attack: adsrValues.attack,
+                        decay: adsrValues.decay,
+                        sustain: adsrValues.sustain,
+                        release: adsrValues.release
+                    },
+                    modulationIndex: 5, // Índice de modulación predeterminado
+                    harmonicity: currentHarmonicity, // Usar el valor actual de harmonicity
+                    volume: synth.volume.value // Mantener el volumen actual
+                });
+                
+                // Detener todas las notas activas
+                const activeNotesList = Object.keys(activeNotes);
+                if (activeNotesList.length > 0) {
+                    synth.triggerRelease(activeNotesList);
+                }
+                
+                // Liberar el sintetizador anterior con un pequeño retardo para evitar clics
+                const oldSynth = synth;
+                synth = newSynth;
+                
+                // Conectar el nuevo sintetizador al analizador, delay y reverb
+                synth.connect(analyzer);
+                if (window.delay) {
+                    synth.connect(window.delay);
+                } else {
+                    console.warn("Delay no encontrado, conectando directo a reverb");
+                    synth.connect(reverb);
+                }
+                
+                // Volver a tocar las notas que estaban activas
+                if (activeNotesList.length > 0 && !arpeggiator.active) {
+                    // Pequeño retardo para evitar clics en la transición
+                    setTimeout(() => {
+                        synth.triggerAttack(activeNotesList);
+                    }, 20);
+                } else if (arpeggiator.active) {
+                    // Reiniciar el arpegiador con las notas activas
+                    startArpeggiator();
+                }
+                
+                // Esperar un poco y luego desconectar el sintetizador anterior
+                setTimeout(() => {
+                    oldSynth.disconnect();
+                    oldSynth.dispose();
+                }, 100);
+                
+                console.log("Sintetizador actualizado correctamente");
+                
+                // Actualizar el visualizador según el nuevo tipo de onda
+                if (visualizerAnimationId) {
+                    cancelAnimationFrame(visualizerAnimationId);
+                    animateVisualizer();
+                }
+                
+                // Reproducir un tono de prueba para mostrar la nueva forma de onda
+                playTestTone();
+            } catch (error) {
+                console.error("Error al actualizar el sintetizador:", error);
+            }
+        }
+        
+        // Crear teclado
+        function createKeyboard(container, octave) {
+            if (!container) return;
+            
+            // Definir el ancho de la tecla blanca
+            const WHITE_KEY_WIDTH = 70;
+            const BLACK_KEY_WIDTH = 40;
+            
+            // Crear las teclas blancas primero
+            const whitePianoKeys = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+            
+            whitePianoKeys.forEach((note, index) => {
+                const noteWithOctave = `${note}${octave}`;
+                
+                const whiteKey = document.createElement('div');
+                whiteKey.className = 'piano-key white-key';
+                whiteKey.setAttribute('data-note', noteWithOctave);
+                whiteKey.style.left = `${index * WHITE_KEY_WIDTH}px`;
+                
+                const noteLabel = document.createElement('div');
+                noteLabel.className = 'note-label';
+                noteLabel.textContent = noteWithOctave;
+                
+                whiteKey.appendChild(noteLabel);
+                
+                // Añadir eventos de ratón
+                whiteKey.addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                    
+                    // Si el audio no está iniciado, iniciarlo primero
+                    if (!audioStarted) {
+                        startAudio().then(() => {
+                            playNote(noteWithOctave);
+                            this.classList.add('active');
+                        }).catch(error => {
+                            console.error("Error al iniciar audio desde tecla:", error);
+                        });
+                    } else {
+                        playNote(noteWithOctave);
+                        this.classList.add('active');
+                    }
+                });
+                
+                // Eventos táctiles
+                whiteKey.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    
+                    if (!audioStarted) {
+                        startAudio().then(() => {
+                            playNote(noteWithOctave);
+                            this.classList.add('active');
+                        }).catch(error => {
+                            console.error("Error al iniciar audio desde tecla táctil:", error);
+                        });
+                    } else {
+                        playNote(noteWithOctave);
+                        this.classList.add('active');
+                    }
+                }, { passive: false });
+                
+                // Eventos para detener la nota
+                const stopNoteHandler = function() {
+                    stopNote(noteWithOctave);
+                    whiteKey.classList.remove('active');
+                };
+                
+                document.addEventListener('mouseup', stopNoteHandler);
+                document.addEventListener('touchend', stopNoteHandler);
+                
+                container.appendChild(whiteKey);
+            });
+            
+            // Configurar el contenedor
+            container.style.width = `${whitePianoKeys.length * WHITE_KEY_WIDTH}px`;
+            container.style.height = '150px';
+            
+            // Crear las teclas negras
+            const blackKeyPositions = [0, 1, 3, 4, 5];
+            
+            blackKeyPositions.forEach((position) => {
+                const whiteNote = whitePianoKeys[position];
+                let blackNote;
+                
+                switch(whiteNote) {
+                    case 'C': blackNote = 'C#'; break;
+                    case 'D': blackNote = 'D#'; break;
+                    case 'F': blackNote = 'F#'; break;
+                    case 'G': blackNote = 'G#'; break;
+                    case 'A': blackNote = 'A#'; break;
+                    default: return;
+                }
+                
+                const blackNoteWithOctave = `${blackNote}${octave}`;
+                
+                const blackKey = document.createElement('div');
+                blackKey.className = 'piano-key black-key';
+                blackKey.setAttribute('data-note', blackNoteWithOctave);
+                blackKey.style.left = `${position * WHITE_KEY_WIDTH + (WHITE_KEY_WIDTH - BLACK_KEY_WIDTH) / 2}px`;
+                
+                const noteLabel = document.createElement('div');
+                noteLabel.className = 'note-label';
+                noteLabel.textContent = blackNoteWithOctave;
+                
+                blackKey.appendChild(noteLabel);
+                
+                // Añadir eventos de ratón
+                blackKey.addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                    
+                    if (!audioStarted) {
+                        startAudio().then(() => {
+                            playNote(blackNoteWithOctave);
+                            this.classList.add('active');
+                        }).catch(error => {
+                            console.error("Error al iniciar audio desde tecla negra:", error);
+                        });
+                    } else {
+                        playNote(blackNoteWithOctave);
+                        this.classList.add('active');
+                    }
+                });
+                
+                // Eventos táctiles
+                blackKey.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    
+                    if (!audioStarted) {
+                        startAudio().then(() => {
+                            playNote(blackNoteWithOctave);
+                            this.classList.add('active');
+                        }).catch(error => {
+                            console.error("Error al iniciar audio desde tecla negra táctil:", error);
+                        });
+                    } else {
+                        playNote(blackNoteWithOctave);
+                        this.classList.add('active');
+                    }
+                }, { passive: false });
+                
+                // Eventos para detener la nota
+                const stopNoteHandler = function() {
+                    stopNote(blackNoteWithOctave);
+                    blackKey.classList.remove('active');
+                };
+                
+                document.addEventListener('mouseup', stopNoteHandler);
+                document.addEventListener('touchend', stopNoteHandler);
+                
+                container.appendChild(blackKey);
+            });
+        }
+        
+        // Tocar una nota
+        function playNote(note) {
+            console.log("Intentando tocar nota:", note);
+            
+            if (!audioStarted || !synth) {
+                console.warn("Sintetizador no inicializado");
+                startAudio().then(() => {
+                    // Intentar reproducir la nota después de iniciar
+                    if (synth) {
+                        playNote(note);
+                    }
+                }).catch(error => {
+                    console.error("Error al iniciar audio para reproducir nota:", error);
+                });
+                return;
+            }
+            
+            try {
+                if (activeNotes[note]) {
+                    stopNote(note);
+                }
+                
+                // Si el arpegiador está activo, actualizar las notas y reiniciarlo
+                if (arpeggiator.active) {
+                    synth.triggerAttack(note);
+                    activeNotes[note] = true;
+                    startArpeggiator();
+                } else {
+                    // Tocar la nota normalmente
+                    synth.triggerAttack(note);
+                    activeNotes[note] = true;
+                }
+                
+                console.log("Nota reproducida:", note);
+            } catch (error) {
+                console.error("Error al reproducir nota:", error);
+            }
+        }
+        
+        // Detener una nota
+        function stopNote(note) {
+            if (!audioStarted || !synth || !activeNotes[note]) return;
+            
+            try {
+                delete activeNotes[note];
+                
+                // Si el arpegiador está activo, actualizar las notas y reiniciarlo
+                if (arpeggiator.active) {
+                    // Si no quedan notas activas, detener el arpegiador
+                    if (Object.keys(activeNotes).length === 0) {
+                        stopArpeggiator();
+                    } else {
+                        startArpeggiator();
+                    }
+                } else {
+                    // Detener la nota normalmente
+                    synth.triggerRelease(note);
+                }
+                
+                console.log("Nota detenida:", note);
+            } catch (error) {
+                console.error("Error al detener nota:", error);
+                delete activeNotes[note];
+            }
+        }
+
+        // Configurar el arpegiador
+        function setupArpeggiator() {
+            // Configurar botones de modo del arpegiador
+            document.querySelectorAll('.arp-mode').forEach(button => {
+                button.addEventListener('click', function() {
+                    const mode = this.getAttribute('data-mode');
+                    
+                    if (mode === 'off') {
+                        stopArpeggiator();
+                        arpeggiator.active = false;
+                    } else {
+                        arpeggiator.mode = mode;
+                        arpeggiator.active = true;
+                        
+                        // Si hay notas activas, reiniciar el arpegiador con las notas actuales
+                        if (Object.keys(activeNotes).length > 0) {
+                            startArpeggiator();
+                        }
+                    }
+                    
+                    // Actualizar UI
+                    document.querySelectorAll('.arp-mode').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                    
+                    console.log(`Arpegiador modo: ${mode}, activo: ${arpeggiator.active}`);
+                });
+            });
+            
+            // Configurar slider de velocidad
+            const rateSlider = document.getElementById('arp-rate');
+            const rateValue = document.getElementById('arp-rate-value');
+            
+            rateSlider.addEventListener('input', function() {
+                const value = parseInt(this.value);
+                arpeggiator.rate = value;
+                rateValue.textContent = `${value} Hz`;
+                
+                // Reiniciar el arpegiador si está activo para aplicar la nueva velocidad
+                if (arpeggiator.active && arpeggiator.intervalId !== null) {
+                    startArpeggiator();
+                }
+                
+                console.log(`Arpegiador rate: ${value}Hz`);
+            });
+            
+            // Configurar slider de octavas
+            const octavesSlider = document.getElementById('arp-octaves');
+            const octavesValue = document.getElementById('arp-octaves-value');
+            
+            octavesSlider.addEventListener('input', function() {
+                const value = parseInt(this.value);
+                arpeggiator.octaves = value;
+                octavesValue.textContent = value;
+                
+                console.log(`Arpegiador octavas: ${value}`);
+            });
+            
+            // Activar el botón "Off" por defecto
+            document.querySelector('.arp-mode[data-mode="off"]').classList.add('active');
+        }
+        
+        // Iniciar el arpegiador
+        function startArpeggiator() {
+            // Primero detener cualquier arpegiador existente
+            stopArpeggiator();
+            
+            // Obtener las notas activas
+            arpeggiator.currentNotes = Object.keys(activeNotes);
+            
+            if (arpeggiator.currentNotes.length === 0) {
+                console.log("No hay notas activas para el arpegiador");
+                return;
+            }
+            
+            console.log(`Iniciando arpegiador con notas: ${arpeggiator.currentNotes.join(', ')}`);
+            
+            // Expandir notas a través de octavas si es necesario
+            if (arpeggiator.octaves > 1) {
+                let expandedNotes = [...arpeggiator.currentNotes];
+                
+                for (let octave = 1; octave < arpeggiator.octaves; octave++) {
+                    arpeggiator.currentNotes.forEach(note => {
+                        // Extraer número de octava y nombre de nota
+                        const noteName = note.slice(0, -1);
+                        const octaveNum = parseInt(note.slice(-1));
+                        
+                        // Crear nueva nota con octava incrementada
+                        const newNote = `${noteName}${octaveNum + octave}`;
+                        expandedNotes.push(newNote);
+                    });
+                }
+                
+                arpeggiator.currentNotes = expandedNotes;
+                console.log(`Notas expandidas con octavas: ${arpeggiator.currentNotes.join(', ')}`);
+            }
+            
+            // Ordenar notas por frecuencia (excepto en modo random)
+            if (arpeggiator.mode !== 'random') {
+                arpeggiator.currentNotes.sort((a, b) => {
+                    const freqA = Tone.Frequency(a).toFrequency();
+                    const freqB = Tone.Frequency(b).toFrequency();
+                    return freqA - freqB;
+                });
+            }
+            
+            // Reiniciar el paso actual
+            arpeggiator.currentStep = 0;
+            arpeggiator.lastRandomNote = null;
+            
+            // Calcular intervalo de tiempo basado en la velocidad (en Hz)
+            const intervalTime = 1000 / arpeggiator.rate;
+            
+            // Iniciar el intervalo para tocar las notas
+            arpeggiator.intervalId = setInterval(() => {
+                if (!audioStarted || !synth) return;
+                
+                // Detener todas las notas anteriores
+                synth.releaseAll();
+                
+                // Obtener la siguiente nota basada en el modo
+                let noteToPlay = null;
+                
+                switch (arpeggiator.mode) {
+                    case 'up':
+                        noteToPlay = arpeggiator.currentNotes[arpeggiator.currentStep];
+                        arpeggiator.currentStep = (arpeggiator.currentStep + 1) % arpeggiator.currentNotes.length;
+                        break;
+                        
+                    case 'down':
+                        noteToPlay = arpeggiator.currentNotes[arpeggiator.currentNotes.length - 1 - arpeggiator.currentStep];
+                        arpeggiator.currentStep = (arpeggiator.currentStep + 1) % arpeggiator.currentNotes.length;
+                        break;
+                        
+                    case 'updown':
+                        // Calcular el tamaño total para up-down (notas*2 - 2 para evitar repeticiones)
+                        const totalSteps = arpeggiator.currentNotes.length * 2 - 2;
+                        if (totalSteps <= 0) {
+                            noteToPlay = arpeggiator.currentNotes[0];
+                        } else {
+                            // Si el paso actual está en la primera mitad, vamos hacia arriba
+                            if (arpeggiator.currentStep < arpeggiator.currentNotes.length) {
+                                noteToPlay = arpeggiator.currentNotes[arpeggiator.currentStep];
+                            } else {
+                                // Si está en la segunda mitad, vamos hacia abajo
+                                noteToPlay = arpeggiator.currentNotes[totalSteps - arpeggiator.currentStep];
+                            }
+                            
+                            arpeggiator.currentStep = (arpeggiator.currentStep + 1) % totalSteps;
+                        }
+                        break;
+                        
+                    case 'random':
+                        // Evitar repetir la misma nota dos veces seguidas
+                        let randomIndex;
+                        let attempts = 0;
+                        const maxAttempts = 5; // Evitar bucle infinito
+                        
+                        do {
+                            randomIndex = Math.floor(Math.random() * arpeggiator.currentNotes.length);
+                            noteToPlay = arpeggiator.currentNotes[randomIndex];
+                            attempts++;
+                        } while (noteToPlay === arpeggiator.lastRandomNote && 
+                                 arpeggiator.currentNotes.length > 1 && 
+                                 attempts < maxAttempts);
+                        
+                        arpeggiator.lastRandomNote = noteToPlay;
+                        break;
+                }
+                
+                if (noteToPlay) {
+                    // Tocar la nota
+                    synth.triggerAttack(noteToPlay);
+                    
+                    // Resaltar visualmente la tecla
+                    const keyElement = document.querySelector(`.piano-key[data-note="${noteToPlay}"]`);
+                    if (keyElement) {
+                        // Quitar clase activa de todas las teclas
+                        document.querySelectorAll('.piano-key').forEach(key => {
+                            key.classList.remove('active');
+                        });
+                        
+                        // Agregar clase activa a esta tecla
+                        keyElement.classList.add('active');
+                    }
+                    
+                    console.log(`Arpegiador tocando nota: ${noteToPlay}`);
+                }
+            }, intervalTime);
+            
+            console.log(`Arpegiador iniciado a ${arpeggiator.rate}Hz en modo ${arpeggiator.mode}`);
+        }
+        
+        // Detener el arpegiador
+        function stopArpeggiator() {
+            if (arpeggiator.intervalId !== null) {
+                clearInterval(arpeggiator.intervalId);
+                arpeggiator.intervalId = null;
+                
+                // Detener todas las notas
+                if (synth) {
+                    synth.releaseAll();
+                }
+                
+                // Eliminar resaltado de todas las teclas
+                document.querySelectorAll('.piano-key').forEach(key => {
+                    key.classList.remove('active');
+                });
+                
+                console.log("Arpegiador detenido");
+            }
+        }
+        
+        // Configurar Pitch Bend
+        function setupPitchBend() {
+            const pitchBendSlider = document.querySelector('.pitch-bend-slider');
+            const pitchBendHandle = document.getElementById('pitch-bend-handle');
+            const pitchBendValue = document.getElementById('pitch-bend-value');
+            
+            if (!pitchBendSlider || !pitchBendHandle || !pitchBendValue) {
+                console.error("No se encontraron elementos del Pitch Bend");
+                return;
+            }
+            
+            let isDragging = false;
+            
+            // Función para calcular la posición del handle y el valor de pitch bend
+            const updatePitchBend = (e) => {
+                if (!isDragging) return;
+                
+                const rect = pitchBendSlider.getBoundingClientRect();
+                const clientY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
+                
+                // Calcular posición relativa (0 a 1, invertida para que arriba sea positivo)
+                let position = 1 - ((clientY - rect.top) / rect.height);
+                position = Math.max(0, Math.min(1, position));
+                
+                // Convertir a porcentaje (-100% a 100%)
+                const percentValue = Math.round((position - 0.5) * 200);
+                
+                // Actualizar posición visual
+                pitchBendHandle.style.top = `${(1 - position) * 100}%`;
+                pitchBendValue.textContent = `${percentValue}%`;
+                
+                // Calcular detune en cents (-1200 a 1200, 1 octava arriba/abajo)
+                const detune = (position - 0.5) * 2400;
+                
+                // Aplicar detune si el sintetizador está creado
+                if (synth) {
+                    updateDetune(detune);
+                }
+            };
+            
+            // Eventos para el pitch bend
+            pitchBendSlider.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                updatePitchBend(e);
+            });
+            
+            document.addEventListener('mousemove', updatePitchBend);
+            
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    
+                    // Animación de retorno al centro
+                    pitchBendHandle.style.transition = 'top 0.3s ease-out';
+                    pitchBendHandle.style.top = '50%';
+                    
+                    // Resetear el valor
+                    pitchBendValue.textContent = '0%';
+                    
+                    // Resetear detune
+                    if (synth) {
+                        updateDetune(0);
+                    }
+                    
+                    // Quitar transición después de completar la animación
+                    setTimeout(() => {
+                        pitchBendHandle.style.transition = '';
+                    }, 300);
+                }
+            });
+            
+            // Eventos táctiles
+            pitchBendSlider.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                updatePitchBend(e);
+                e.preventDefault();
+            }, { passive: false });
+            
+            document.addEventListener('touchmove', (e) => {
+                updatePitchBend(e);
+                if (isDragging) e.preventDefault();
+            }, { passive: false });
+            
+            document.addEventListener('touchend', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    
+                    // Animación de retorno al centro
+                    pitchBendHandle.style.transition = 'top 0.3s ease-out';
+                    pitchBendHandle.style.top = '50%';
+                    
+                    // Resetear el valor
+                    pitchBendValue.textContent = '0%';
+                    
+                    // Resetear detune
+                    if (synth) {
+                        updateDetune(0);
+                    }
+                    
+                    // Quitar transición después de completar la animación
+                    setTimeout(() => {
+                        pitchBendHandle.style.transition = '';
+                    }, 300);
+                }
+            });
+            
+            console.log("Pitch Bend configurado");
+        }
+        
+        // Configurar controles de octava
+        function setupOctaveControls() {
+            const octaveDownBtn = document.getElementById('octave-down');
+            const octaveUpBtn = document.getElementById('octave-up');
+            const currentOctaveDisplay = document.getElementById('current-octave');
+            
+            if (!octaveDownBtn || !octaveUpBtn || !currentOctaveDisplay) {
+                console.error("No se encontraron elementos de control de octava");
+                return;
+            }
+            
+            // Actualizar display de octava
+            updateOctaveDisplay();
+            
+            // Configurar eventos para los botones
+            octaveDownBtn.addEventListener('click', () => {
+                if (currentOctave > MIN_OCTAVE) {
+                    currentOctave--;
+                    updateOctaveKeys();
+                    updateOctaveDisplay();
+                    console.log(`Octava reducida a ${currentOctave}-${currentOctave+1}`);
+                }
+            });
+            
+            octaveUpBtn.addEventListener('click', () => {
+                if (currentOctave < MAX_OCTAVE - 1) {
+                    currentOctave++;
+                    updateOctaveKeys();
+                    updateOctaveDisplay();
+                    console.log(`Octava aumentada a ${currentOctave}-${currentOctave+1}`);
+                }
+            });
+            
+            console.log("Controles de octava configurados");
+        }
+        
+        // Actualizar visualización de octava
+        function updateOctaveDisplay() {
+            const octaveDisplay = document.getElementById('current-octave');
+            if (octaveDisplay) {
+                octaveDisplay.textContent = `${currentOctave}-${currentOctave+1}`;
+            }
+        }
+        
+        // Actualizar las teclas del teclado según la octava seleccionada
+        function updateOctaveKeys() {
+            console.log(`Actualizando octavas a ${currentOctave}-${currentOctave+1}`);
+            
+            // Detener notas activas
+            if (synth) {
+                synth.releaseAll();
+                activeNotes = {};
+                activeKeys = {};
+            }
+            
+            // Limpiar los contenedores actuales
+            const octave4Container = document.getElementById('octave-4');
+            const octave5Container = document.getElementById('octave-5');
+            
+            if (octave4Container && octave5Container) {
+                octave4Container.innerHTML = '';
+                octave5Container.innerHTML = '';
+                
+                // Volver a crear los teclados con las nuevas octavas
+                createKeyboard(octave4Container, currentOctave);
+                createKeyboard(octave5Container, currentOctave + 1);
+                
+                // Actualizar el mapeo de teclas al cambiar la octava
+                updateKeyboardMap();
+            }
+        }
+        
+        // Actualizar el mapeo de teclas de acuerdo a la octava seleccionada
+        function updateKeyboardMap() {
+            // Mapeo de teclas para la octava actual
+            const keyMap = {
+                // Octava inferior
+                'z': `C${currentOctave}`,
+                's': `C#${currentOctave}`,
+                'x': `D${currentOctave}`,
+                'd': `D#${currentOctave}`,
+                'c': `E${currentOctave}`,
+                'v': `F${currentOctave}`,
+                'g': `F#${currentOctave}`,
+                'b': `G${currentOctave}`,
+                'h': `G#${currentOctave}`,
+                'n': `A${currentOctave}`,
+                'j': `A#${currentOctave}`,
+                'm': `B${currentOctave}`,
+                
+                // Octava superior
+                'q': `C${currentOctave+1}`,
+                '2': `C#${currentOctave+1}`,
+                'w': `D${currentOctave+1}`,
+                '3': `D#${currentOctave+1}`,
+                'e': `E${currentOctave+1}`,
+                'r': `F${currentOctave+1}`,
+                '5': `F#${currentOctave+1}`,
+                't': `G${currentOctave+1}`,
+                '6': `G#${currentOctave+1}`,
+                'y': `A${currentOctave+1}`,
+                '7': `A#${currentOctave+1}`,
+                'u': `B${currentOctave+1}`
+            };
+            
+            // Limpiar el mapeo anterior
+            Object.keys(keyboardMap).forEach(key => {
+                delete keyboardMap[key];
+            });
+            
+            // Establecer el nuevo mapeo
+            Object.keys(keyMap).forEach(key => {
+                keyboardMap[key] = keyMap[key];
+            });
+            
+            console.log("Mapeo de teclado actualizado para octavas:", currentOctave, currentOctave+1);
+        }
+    </script>
+    
+    <!-- Script adicional para el motor de síntesis -->
+    <script>
+        // Variables globales para sintetizador
+        window.currentSynthType = 'fm'; // Tipo por defecto
+        window.activeNotes = {};
+        window.audioStarted = false;
+        
+        // Inicializar botones de sintetizador cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', function() {
+            // Configurar botones del sintetizador
+            const synthButtons = document.querySelectorAll('.synth-type');
+            synthButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const synthType = this.getAttribute('data-type');
+                    handleSynthButtonClick(synthType);
+                });
+            });
+            
+            // Activar el botón FM por defecto
+            document.querySelector('.synth-type[data-type="fm"]')?.classList.add('active');
+        });
+        
+        // Manejar clic en botón de sintetizador
+        function handleSynthButtonClick(type) {
+            console.log(`Cambiando a sintetizador: ${type}`);
+            
+            // Actualizar UI
+            document.querySelectorAll('.synth-type').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.querySelector(`.synth-type[data-type="${type}"]`)?.classList.add('active');
+            
+            // Guardar el tipo actual
+            window.currentSynthType = type;
+            
+            // Asegurarse de que el contexto de audio está en ejecución
+            if (Tone.context.state !== "running") {
+                Tone.context.resume();
+            }
+            
+            // Crear nuevo sintetizador del tipo seleccionado
+            createNewSynth(type);
+        }
+        
+        // Crear un nuevo sintetizador del tipo especificado
+        function createNewSynth(type) {
+            const oldSynth = window.synth;
+            const activeNotes = {...window.activeNotes};
+            
+            // Crear sintetizador basado en el tipo
+            switch(type) {
+                case 'fm':
+                    window.synth = new Tone.PolySynth(Tone.FMSynth).toDestination();
+                    break;
+                case 'am':
+                    window.synth = new Tone.PolySynth(Tone.AMSynth).toDestination();
+                    break;
+                case 'simple':
+                    window.synth = new Tone.PolySynth(Tone.MonoSynth).toDestination();
+                    break;
+                case 'fat':
+                    window.synth = new Tone.PolySynth(Tone.Synth, {
+                        oscillator: {
+                            type: "fat8",
+                            count: 8,
+                            spread: 40
+                        }
+                    }).toDestination();
+                    break;
+                default:
+                    window.synth = new Tone.PolySynth(Tone.FMSynth).toDestination();
+            }
+            
+            // Tocar nota de prueba con el nuevo sintetizador
+            setTimeout(() => {
+                window.synth.triggerAttackRelease("C4", "8n");
+            }, 100);
+            
+            // Reactivar notas que estaban sonando
+            const activeNotesList = Object.keys(activeNotes);
+            if (activeNotesList.length > 0) {
+                setTimeout(() => {
+                    window.synth.triggerAttack(activeNotesList);
+                }, 200);
+            }
+            
+            // Liberar el sintetizador anterior
+            if (oldSynth) {
+                setTimeout(() => {
+                    oldSynth.dispose();
+                }, 300);
+            }
+        }
+    </script>
+    
+    <!-- Script adicional para control de efectos -->
+    <script>
+        // Variables globales para efectos
+        window.audioStarted = false;
+        window.activeNotes = {};
+        
+        // Inicializar controles de efectos cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("Inicializando controles de efectos...");
+            
+            // Configurar control de nivel global para el delay
+            const delayLevelControl = document.createElement('div');
+            delayLevelControl.className = 'control-item';
+            delayLevelControl.innerHTML = `
+                <label for="delay-wet">Mix</label>
+                <input type="range" id="delay-wet" min="0" max="1" value="0.5" step="0.01">
+                <div id="delay-wet-value" class="control-value">0.5</div>
+            `;
+            
+            // Agregar el control a los controles de delay
+            const delayControls = document.querySelector('.delay-controls');
+            if (delayControls) {
+                delayControls.appendChild(delayLevelControl);
+                
+                // El control se configura en setupDelayControls()
+                console.log("Control de mix de delay agregado");
+            }
+            
+            console.log("Controles de efectos inicializados");
+        });
+    </script>
+</body>
+</html>
