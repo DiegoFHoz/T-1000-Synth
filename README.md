@@ -38,4 +38,4 @@ Un sintetizador web retro-futurista con efectos de delay, reverb, y arpegiador. 
 
 ## Licencia
 
-MIT 
+MIT
