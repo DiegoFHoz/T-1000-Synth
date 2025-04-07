@@ -1,41 +1,41 @@
 # T-1000 Synthesizer
 
-Un sintetizador web retro-futurista con efectos de delay, reverb, y arpegiador. Construido con Tone.js y vanilla JavaScript.
+A retro-futuristic web synthesizer with delay, reverb, and arpeggiator effects. Built with Tone.js and vanilla JavaScript.
 
 ![T-1000 Synthesizer](screenshot.png)
 
-## Características
+## Features
 
-- Teclado interactivo con soporte para teclado físico
-- Diferentes tipos de osciladores (Sine, Square, Sawtooth, Triangle)
-- Envolvente ADSR configurable
-- Efectos incorporados:
-  - Delay con tiempo y feedback ajustables
-  - Reverb con mezcla y decay ajustables
-- Arpegiador con múltiples modos (Up, Down, Up/Down, Random)
-- Control de octava
-- Visualizador de forma de onda en tiempo real
+- Interactive keyboard with physical keyboard support
+- Different oscillator types (Sine, Square, Sawtooth, Triangle)
+- Configurable ADSR envelope
+- Built-in effects:
+  - Delay with adjustable time and feedback
+  - Reverb with adjustable mix and decay
+- Arpeggiator with multiple modes (Up, Down, Up/Down, Random)
+- Octave control
+- Real-time waveform visualizer
 
-## Tecnologías
+## Technologies
 
 - HTML5
 - CSS3
 - JavaScript
-- [Tone.js](https://tonejs.github.io/) para la síntesis de audio
+- [Tone.js](https://tonejs.github.io/) for audio synthesis
 
-## Uso
+## Usage
 
-1. Abre `index.html` en tu navegador
-2. Utiliza el ratón o tu teclado físico para tocar notas
-3. Experimenta con los diferentes controles y ajustes para crear tu sonido único
+1. Open `index.html` in your browser
+2. Use your mouse or physical keyboard to play notes
+3. Experiment with different controls and settings to create your unique sound
 
-## Controles de Teclado
+## Keyboard Controls
 
-- Teclas `Z` a `M`: Octava inferior
-- Teclas `Q` a `U`: Octava superior
-- Teclas con sostenidos: `S`, `D`, `G`, `H`, `J`, `2`, `3`, `5`, `6`, `7`
-- Flecha arriba/abajo: Cambiar octava
+- Keys `Z` to `M`: Lower octave
+- Keys `Q` to `U`: Upper octave
+- Keys with sharps: `S`, `D`, `G`, `H`, `J`, `2`, `3`, `5`, `6`, `7`
+- Up/down arrows: Change octave
 
-## Licencia
+## License
 
 MIT
