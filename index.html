@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- Versión actualizada: 7 abril 2025 -->
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -473,40 +472,103 @@
         
         /* Controles de octava */
         .octave-controls {
-            width: 60px;
-            height: 120px;
-            margin-left: 15px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            margin-top: 10px;
         }
         
         .octave-button {
-            width: 35px;
-            height: 35px;
+            width: 36px;
+            height: 36px;
             background: var(--dark-bg);
             color: var(--neon-pink);
-            border: 1px solid var(--neon-pink);
+            border: 2px solid var(--neon-pink);
             border-radius: 50%;
-            font-size: 1.3rem;
-            line-height: 1;
             cursor: pointer;
             margin: 5px 0;
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 0 10px rgba(255, 0, 255, 0.3);
-            font-family: 'Orbitron', sans-serif;
-            font-weight: 400; /* Peso más ligero pero legible para los símbolos + y - */
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+            padding: 0;
+            text-align: center;
+            user-select: none;
+            position: relative;
+            overflow: hidden;
+            /* Garantizar forma perfectamente circular */
+            box-sizing: border-box;
+            aspect-ratio: 1/1;
+        }
+        
+        /* Efecto de brillo interno */
+        .octave-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(255, 0, 255, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+            border-radius: 50%; /* Asegurar bordes redondos */
+        }
+        
+        /* Efecto de borde brillante */
+        .octave-button::after {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            bottom: -1px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 0, 255, 0.7);
+            box-shadow: 0 0 8px var(--neon-pink);
+            pointer-events: none;
+            opacity: 0.5;
+        }
+        
+        /* Estilos para todos los símbolos */
+        .octave-button span {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-shadow: 0 0 5px var(--neon-pink);
+            z-index: 2;
         }
         
         .octave-button:hover {
-            transform: scale(1.1);
+            transform: scale(1.05);
             box-shadow: 0 0 15px var(--neon-pink);
+            background: rgba(255, 0, 255, 0.2);
+        }
+        
+        .octave-button:active {
+            transform: scale(0.95);
             background: var(--neon-pink);
             color: var(--dark-bg);
+        }
+        
+        /* Símbolo + */
+        #octave-up span {
+            font-size: 20px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+        
+        /* Símbolo - */
+        #octave-down span {
+            font-size: 26px;
+            font-weight: normal;
+            font-family: 'Courier New', monospace;
         }
         
         .octave-display {
@@ -958,11 +1020,19 @@
         .delay-controls {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            margin-top: 10px;
+            gap: 5px; /* Reducido */
+            margin-top: 5px; /* Reducido */
             padding: 0 5px;
             flex: 1;
-            height: calc(100% - 50px); /* Ajustar espacio para el título */
+            overflow: visible;
+        }
+
+        .delay-controls .control-item {
+            margin-bottom: 5px; /* Reducir el margen inferior */
+        }
+
+        .delay-controls label {
+            margin-bottom: 3px; /* Reducir el margen inferior de las etiquetas */
         }
 
         .control-item input[type="range"]::-moz-range-thumb {
@@ -1009,16 +1079,216 @@
         .delay-controls .control-value, .reverb-panel .control-value {
             font-size: 0.75rem; /* Reducido */
         }
+
+        /* Estilos para el botón de información */
+        .info-button {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--dark-bg);
+            border: 2px solid var(--neon-pink);
+            color: var(--neon-pink);
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .info-button:hover {
+            background: var(--neon-pink);
+            color: var(--dark-bg);
+            box-shadow: 0 0 15px var(--neon-pink);
+        }
+
+        /* Estilos para el modal de información */
+        .info-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .info-modal-content {
+            background: var(--dark-bg);
+            border: 2px solid var(--neon-blue);
+            border-radius: 10px;
+            width: 80%;
+            max-width: 600px;
+            max-height: 80%;
+            overflow-y: auto;
+            padding: 20px;
+            box-shadow: 0 0 20px var(--neon-blue);
+            position: relative;
+        }
+
+        .info-modal-title {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--neon-pink);
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .info-modal-section {
+            margin-bottom: 15px;
+        }
+
+        .info-modal-subtitle {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--neon-blue);
+            font-size: 1rem;
+            margin-bottom: 8px;
+            font-weight: 400;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .info-modal-text {
+            color: #fff;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+
+        .info-modal-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--dark-bg);
+            border: 2px solid var(--neon-pink);
+            color: var(--neon-pink);
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .info-modal-close:hover {
+            background: var(--neon-pink);
+            color: var(--dark-bg);
+            transform: scale(1.1);
+        }
+
+        .key-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .key-item {
+            display: flex;
+            align-items: center;
+            font-size: 0.75rem;
+        }
+
+        .key-symbol {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--neon-blue);
+            border-radius: 4px;
+            padding: 2px 6px;
+            margin-right: 8px;
+            font-family: 'Orbitron', sans-serif;
+            color: var(--neon-blue);
+            font-size: 0.7rem;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="title-container">
             <img src="terminator.png" alt="Terminator" class="title-image">
-            <h1>T-1000</h1>
+            <h1>T-1000 Synth</h1>
             <img src="terminator.png" alt="Terminator" class="title-image">
         </div>
-        
+
+        <!-- Botón de información -->
+        <div class="info-button">i</div>
+
+        <!-- Modal de información -->
+        <div class="info-modal">
+            <div class="info-modal-content">
+                <div class="info-modal-close">×</div>
+                <h2 class="info-modal-title">T-1000 Synthesizer Guide</h2>
+                
+                <div class="info-modal-section">
+                    <h3 class="info-modal-subtitle">Keyboard Controls</h3>
+                    <p class="info-modal-text">You can play notes using your mouse or your computer keyboard:</p>
+                    
+                    <div class="key-grid">
+                        <div class="key-item">
+                            <span class="key-symbol">Z-M</span>
+                            <span>Lower octave notes</span>
+                        </div>
+                        <div class="key-item">
+                            <span class="key-symbol">Q-U</span>
+                            <span>Upper octave notes</span>
+                        </div>
+                        <div class="key-item">
+                            <span class="key-symbol">S,D,G,H,J</span>
+                            <span>Lower octave sharps</span>
+                        </div>
+                        <div class="key-item">
+                            <span class="key-symbol">2,3,5,6,7</span>
+                            <span>Upper octave sharps</span>
+                        </div>
+                        <div class="key-item">
+                            <span class="key-symbol">&#9650;</span>
+                            <span>Increase octave</span>
+                        </div>
+                        <div class="key-item">
+                            <span class="key-symbol">&#9660;</span>
+                            <span>Decrease octave</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="info-modal-section">
+                    <h3 class="info-modal-subtitle">Synthesizer Settings</h3>
+                    <p class="info-modal-text">Customize your sound with these controls:</p>
+                    <ul class="info-modal-text">
+                        <li><strong>Oscillator Type:</strong> Choose between different waveforms (Sine, Square, Sawtooth, Triangle)</li>
+                        <li><strong>ADSR Envelope:</strong> Shape your sound with Attack, Decay, Sustain, and Release</li>
+                        <li><strong>Effects:</strong> Add depth with Delay and Reverb effects</li>
+                        <li><strong>Arpeggiator:</strong> Create rhythmic patterns from held notes</li>
+                    </ul>
+                </div>
+                
+                <div class="info-modal-section">
+                    <h3 class="info-modal-subtitle">Tips</h3>
+                    <ul class="info-modal-text">
+                        <li>Click the Start Audio button first if no sound is playing</li>
+                        <li>Experiment with different oscillator types for various timbres</li>
+                        <li>Try different ADSR settings to create pads, plucks, or leads</li>
+                        <li>Use the waveform display to visualize your sound</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
         <div class="main-content" id="main-content">
             <div class="control-panel">
                 <!-- Panel de osciladores con modulación -->
@@ -1139,6 +1409,11 @@
                             <input type="range" id="delay-feedback" min="0" max="0.9" value="0.5" step="0.01">
                             <div id="delay-feedback-value" class="control-value">0.5</div>
                         </div>
+                        <div class="control-item">
+                            <label for="delay-wet">Mix</label>
+                            <input type="range" id="delay-wet" min="0" max="1" value="0.5" step="0.01">
+                            <div id="delay-wet-value" class="control-value">0.5</div>
+                        </div>
                     </div>
                 </div>
                 
@@ -1182,9 +1457,9 @@
                 </div>
                 
                 <div class="octave-controls">
-                    <button id="octave-down" class="octave-button" title="Bajar octava (Flecha abajo)">-</button>
+                    <button id="octave-down" class="octave-button" title="Bajar octava (Flecha abajo)"><span>&#8722;</span></button>
                     <div id="current-octave" class="octave-display" title="Octava actual del teclado">4-5</div>
-                    <button id="octave-up" class="octave-button" title="Subir octava (Flecha arriba)">+</button>
+                    <button id="octave-up" class="octave-button" title="Subir octava (Flecha arriba)"><span>+</span></button>
                 </div>
             </div>
         </div>
@@ -1682,6 +1957,9 @@
             }
         }
         
+        // Variable para rastrear si es la primera nota presionada
+        let isFirstNotePress = true;
+        
         // Reproducir nota y resaltar la tecla correspondiente (optimizado)
         function playNoteWithKeyHighlight(note, key) {
             if (!audioStarted || !synth) {
@@ -1693,6 +1971,43 @@
             if (activeKeys[key]) return;
             
             try {
+                // Si es la primera nota después de cargar la página
+                if (isFirstNotePress) {
+                    console.log("Primera nota detectada, aplicando configuración especial");
+                    isFirstNotePress = false;
+                    
+                    // Asegurar que no hay notas activas previas
+                    synth.releaseAll();
+                    
+                    // Limpiar todos los estados
+                    activeKeys = {};
+                    activeNotes = {};
+                    
+                    // Limpiar todas las teclas visuales
+                    document.querySelectorAll('.piano-key').forEach(key => {
+                        key.classList.remove('active');
+                    });
+                    
+                    // Pequeño retraso para asegurar que el audio esté completamente inicializado
+                    setTimeout(() => {
+                        // Tocar nota con prioridad alta
+                        synth.triggerAttack(note);
+                        
+                        // Registrar estado
+                        activeKeys[key] = true;
+                        activeNotes[note] = true;
+                        
+                        // Resaltar tecla visualmente
+                        const keyElement = document.querySelector(`.piano-key[data-note="${note}"]`);
+                        if (keyElement) {
+                            keyElement.classList.add('active');
+                        }
+                    }, 50);
+                    
+                    return;
+                }
+                
+                // Para notas normales (no es la primera)
                 // Tocar nota con prioridad alta
                 synth.triggerAttack(note);
                 
@@ -1886,6 +2201,14 @@
                 
                 audioStarted = true;
                 console.log("Audio iniciado correctamente con valores ADSR:", adsrValues);
+                
+                // Asegurar que no haya notas activas al inicio
+                synth.releaseAll();
+                activeKeys = {};
+                activeNotes = {};
+                document.querySelectorAll('.piano-key').forEach(key => {
+                    key.classList.remove('active');
+                });
                 
                 // Configurar controles de delay
                 setupDelayControls();
@@ -2891,6 +3214,47 @@
             
             console.log("Controles de efectos inicializados");
         });
+    </script>
+
+    <!-- Script para gestionar el modal de información -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const infoButton = document.querySelector('.info-button');
+            const infoModal = document.querySelector('.info-modal');
+            const closeButton = document.querySelector('.info-modal-close');
+            
+            // Abrir modal al hacer clic en el botón de info
+            infoButton.addEventListener('click', function() {
+                infoModal.style.display = 'flex';
+            });
+            
+            // Cerrar modal al hacer clic en el botón de cierre
+            closeButton.addEventListener('click', function() {
+                infoModal.style.display = 'none';
+            });
+            
+            // Cerrar modal al hacer clic fuera del contenido
+            infoModal.addEventListener('click', function(event) {
+                if (event.target === infoModal) {
+                    infoModal.style.display = 'none';
+                }
+            });
+            
+            // Cerrar modal con la tecla Escape
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape' && infoModal.style.display === 'flex') {
+                    infoModal.style.display = 'none';
+                }
+            });
+        });
+    </script>
+
+    <!-- Función para inicializar Tone.js -->
+    <script>
+        // Función para inicializar Tone.js
+        function initializeTone() {
+            // ... existing code ...
+        }
     </script>
 </body>
 </html>
