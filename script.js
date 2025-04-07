@@ -217,6 +217,9 @@ function createKeyboard(container, octave) {
     const WHITE_KEY_WIDTH = 38; // Actualizado a 38px
     const BLACK_KEY_WIDTH = 24; // Actualizado a 24px
     
+    // Variable para detectar la primera interacción
+    let isFirstInteraction = true;
+    
     // Crear las teclas blancas primero
     const whitePianoKeys = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
     
@@ -238,6 +241,23 @@ function createKeyboard(container, octave) {
         whiteKey.addEventListener('mousedown', function(e) {
             e.preventDefault();
             
+            // Detectar si es la primera interacción
+            if (isFirstInteraction) {
+                isFirstInteraction = false;
+                
+                // Configurar un temporizador para liberar automáticamente la nota
+                setTimeout(() => {
+                    console.log("Liberando nota por temporizador de seguridad");
+                    stopNote(noteWithOctave);
+                    this.classList.remove('active');
+                    // Asegurar que no haya otras notas activas
+                    if (window.synth) {
+                        window.synth.releaseAll();
+                        window.activeNotes = {};
+                    }
+                }, 800);
+            }
+            
             // Si el audio no está iniciado, iniciarlo primero
             if (!window.audioStarted) {
                 startAudio().then(() => {
@@ -255,6 +275,23 @@ function createKeyboard(container, octave) {
         // Eventos táctiles
         whiteKey.addEventListener('touchstart', function(e) {
             e.preventDefault();
+            
+            // Detectar si es la primera interacción
+            if (isFirstInteraction) {
+                isFirstInteraction = false;
+                
+                // Configurar un temporizador para liberar automáticamente la nota
+                setTimeout(() => {
+                    console.log("Liberando nota por temporizador de seguridad (táctil)");
+                    stopNote(noteWithOctave);
+                    this.classList.remove('active');
+                    // Asegurar que no haya otras notas activas
+                    if (window.synth) {
+                        window.synth.releaseAll();
+                        window.activeNotes = {};
+                    }
+                }, 800);
+            }
             
             if (!window.audioStarted) {
                 startAudio().then(() => {
@@ -318,6 +355,23 @@ function createKeyboard(container, octave) {
         blackKey.addEventListener('mousedown', function(e) {
             e.preventDefault();
             
+            // Detectar si es la primera interacción
+            if (isFirstInteraction) {
+                isFirstInteraction = false;
+                
+                // Configurar un temporizador para liberar automáticamente la nota
+                setTimeout(() => {
+                    console.log("Liberando nota negra por temporizador de seguridad");
+                    stopNote(blackNoteWithOctave);
+                    this.classList.remove('active');
+                    // Asegurar que no haya otras notas activas
+                    if (window.synth) {
+                        window.synth.releaseAll();
+                        window.activeNotes = {};
+                    }
+                }, 800);
+            }
+            
             if (!window.audioStarted) {
                 startAudio().then(() => {
                     playNote(blackNoteWithOctave);
@@ -334,6 +388,23 @@ function createKeyboard(container, octave) {
         // Eventos táctiles
         blackKey.addEventListener('touchstart', function(e) {
             e.preventDefault();
+            
+            // Detectar si es la primera interacción
+            if (isFirstInteraction) {
+                isFirstInteraction = false;
+                
+                // Configurar un temporizador para liberar automáticamente la nota
+                setTimeout(() => {
+                    console.log("Liberando nota negra por temporizador de seguridad (táctil)");
+                    stopNote(blackNoteWithOctave);
+                    this.classList.remove('active');
+                    // Asegurar que no haya otras notas activas
+                    if (window.synth) {
+                        window.synth.releaseAll();
+                        window.activeNotes = {};
+                    }
+                }, 800);
+            }
             
             if (!window.audioStarted) {
                 startAudio().then(() => {
@@ -455,20 +526,42 @@ function playNote(note) {
 
 // Detener una nota
 function stopNote(note) {
-    if (!window.synth || !window.activeNotes || !window.activeNotes[note]) {
-        return;
-    }
-    
     try {
-        window.synth.triggerRelease(note);
-        delete window.activeNotes[note];
-        
-        // Actualizar el estado visual de la tecla
-        updateKeyState(note, false);
-        
-        console.log(`Nota detenida: ${note}`);
+        // Verificar si la nota está activa antes de intentar detenerla
+        if (window.synth && note) {
+            // Asegurarse de que se libere la nota incluso si no está en activeNotes
+            window.synth.triggerRelease(note);
+            
+            // Eliminar la nota del registro de notas activas
+            if (window.activeNotes && window.activeNotes[note]) {
+                delete window.activeNotes[note];
+            }
+            
+            // Actualizar el estado visual de la tecla
+            updateKeyState(note, false);
+            
+            console.log(`Nota detenida: ${note}`);
+        }
     } catch (error) {
         console.error(`Error al detener la nota ${note}:`, error);
+        
+        // En caso de error, intentar un enfoque más agresivo
+        try {
+            if (window.synth) {
+                // Liberar todas las notas como medida de seguridad
+                window.synth.releaseAll();
+                window.activeNotes = {};
+                
+                // Actualizar todas las teclas visualmente
+                document.querySelectorAll('.piano-key').forEach(key => {
+                    key.classList.remove('active');
+                });
+                
+                console.log("Se liberaron todas las notas como medida de recuperación");
+            }
+        } catch (secondError) {
+            console.error("Error en la recuperación de emergencia:", secondError);
+        }
     }
 }
 
@@ -1239,6 +1332,19 @@ async function startAudio() {
             await Tone.context.resume();
         }
         
+        // Liberar todas las notas que pudieran estar activas
+        if (window.synth) {
+            window.synth.releaseAll();
+        }
+        
+        // Limpiar el objeto de notas activas
+        window.activeNotes = {};
+        
+        // Quitar clase active de todas las teclas
+        document.querySelectorAll('.piano-key').forEach(key => {
+            key.classList.remove('active');
+        });
+        
         // Configurar componentes de sintetizador
         setupSynthComponents();
         
@@ -1252,8 +1358,12 @@ async function startAudio() {
         // Tocar una nota de prueba después de un breve retraso
         setTimeout(() => {
             try {
-                playNote("C4");
-                setTimeout(() => stopNote("C4"), 300);
+                // En lugar de tocar y detener directamente, usamos la función triggerAttackRelease
+                // que maneja automáticamente el release después del tiempo especificado
+                if (window.synth) {
+                    window.synth.triggerAttackRelease("C4", "8n");
+                    console.log("Nota de prueba reproducida");
+                }
             } catch (e) {
                 console.error("Error al tocar nota de prueba:", e);
             }
